@@ -16,11 +16,18 @@
 
 ***
 
-<p align="center">
-  <img alt="3D Top" src="design/pcb/outputs/Images/Nano-Board-rev-2-3d-top.png" width="45%">
-&nbsp; &nbsp; &nbsp; &nbsp;
-  <img alt="3D Bottom" src="design/pcb/outputs/Images/Nano-Board-rev-2-3d-bottom.png" width="45%">
-</p>
+<table align="center">
+  <tr>
+    <td align="center">
+      <img alt="Front" src="design/pcb/outputs/Images/Nano-Board-rev-2-3d-top.png" width="380">
+      <br><sub><b>Front</b></sub>
+    </td>
+    <td align="center">
+      <img alt="Back" src="design/pcb/outputs/Images/Nano-Board-rev-2-3d-bottom.png" width="380">
+      <br><sub><b>Back</b></sub>
+    </td>
+  </tr>
+</table>
 
 ***
 
