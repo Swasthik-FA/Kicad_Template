@@ -61,10 +61,10 @@
     │
     └─ Variants           # Outputs for assembly variants
 
-
-
 <p align="center" width="100%">
-  <a href="https://github.com/Swasthik-FA/Kicad_Template/actions/workflows/feature-push.yml">
-    <img alt="CI Badge" src="https://github.com/Swasthik-FA/Kicad_Template/actions/workflows/feature-push.yml/badge.svg">
-  </a>
+  <img alt="Logo" width="33%" src="docs/Kicad_Template.png">
 </p>
+
+<h1 align="center"><!--REPO_NAME-->Kicad_Template<!--/REPO_NAME--></h1>
+
+
