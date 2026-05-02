@@ -2,21 +2,13 @@
 # Stage 1 — Feature branch push (FAST, no gating)
 # ----------------------------------------------------------------------------
 # Trigger:  any push to a `feature/**` branch.
-# Purpose:  fast visual previews so the engineer can sanity-check work
-#           without being blocked on ERC/DRC.
+# Purpose:  fast schematic + 3D PNG previews so the engineer can sanity-check
+#           work without being blocked on ERC/DRC.
 #
-# Approach: drive `kicad-cli` directly (same pattern as the reference
-#           Fastbit pcb-checks.yaml workflow). KiBot adds a layer that
-#           swallows kicad-cli stderr and bails on the first failure;
-#           direct kicad-cli gives us per-command exit codes and real
-#           error messages.
-#
-# Outputs:
-#   output/Nano-Board-rev-2-schematic.pdf      (full schematic, all sheets)
-#   output/Nano-Board-rev-2-pcb-top.svg        (top copper + silk + mask)
-#   output/Nano-Board-rev-2-pcb-bottom.svg     (bottom, mirrored)
-#   output/Nano-Board-rev-2-3d-top.png         (3D top render)
-#   output/Nano-Board-rev-2-3d-bottom.png      (3D bottom render)
+# Implementation: uses the official INTI-CMNB/KiBot@v2_dk8 GitHub Action,
+#                 the same way the reference Fastbit ci.yaml workflow does.
+#                 The action provides the KiCad 8 + KiBot environment with
+#                 cache3D enabled, which is what makes render_3d reliable.
 # ============================================================================
 name: Feature push — visual preview
 
@@ -28,115 +20,71 @@ on:
 env:
   KICAD_PROJECT_DIR: hardware
   KICAD_PROJECT: Nano-Board-rev-2
+  KIBOT_CONFIG: config/kibot-visual.yaml
+  KIBOT_LOG: kibot_run.log
 
 jobs:
   visual-preview:
     name: Visual preview (no ERC/DRC)
     runs-on: ubuntu-latest
 
-    container:
-      image: ghcr.io/inti-cmnb/kicad8_auto_full:latest
-      options: --user root
-
-    defaults:
-      run:
-        shell: bash
-
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      # ----------------------------------------------------------------------
-      # kicad-cli version — useful for debugging when things change.
-      # ----------------------------------------------------------------------
-      - name: kicad-cli version
+      # Cache 3D models between runs (mirrors the reference workflow). Saves
+      # ~30-60 s on subsequent runs and makes render_3d much more reliable.
+      - name: Cache 3D models data
+        id: models-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/cache_3d
+          key: cache_3d-${{ runner.os }}
+
+      # The KiBot action provides the KiCad 8 + KiBot container, mounts the
+      # repo, and forwards options to the kibot CLI. Same pattern as the
+      # reference's "Generate outputs (KiCad 8)" step.
+      - name: Generate visuals (KiBot, KiCad 8)
+        id: kibot
+        continue-on-error: true
+        uses: INTI-CMNB/KiBot@v2_dk8
+        with:
+          config: ${{ env.KIBOT_CONFIG }}
+          schema: ${{ env.KICAD_PROJECT_DIR }}/${{ env.KICAD_PROJECT }}.kicad_sch
+          board: ${{ env.KICAD_PROJECT_DIR }}/${{ env.KICAD_PROJECT }}.kicad_pcb
+          dir: output
+          additional_args: --log ${{ env.KIBOT_LOG }}
+          cache3D: YES
+
+      # Always print the KiBot log tail and the output tree so failures are
+      # diagnosable from the Actions UI alone (no need to download artifacts).
+      - name: Show KiBot log + output tree
+        if: always()
+        shell: bash
         run: |
-          kicad-cli version || true
-          kicad-cli --help-commands || true
-
-      # ----------------------------------------------------------------------
-      # Visual outputs — each command runs independently. Failures are
-      # tolerated (set +e, no fail-fast) so one bad output never wipes the
-      # rest. The summary block prints exit codes for everything.
-      # ----------------------------------------------------------------------
-      - name: Generate visuals via kicad-cli
-        run: |
-          set +e
-          mkdir -p output
-          SCH="${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_sch"
-          PCB="${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb"
-          declare -A RC
-
-          echo "::group::1/5 Schematic PDF"
-          kicad-cli sch export pdf \
-            --output "output/${KICAD_PROJECT}-schematic.pdf" \
-            "${SCH}"
-          RC[sch_pdf]=$?
+          echo "::group::Last 100 lines of KiBot log"
+          [ -f "${KIBOT_LOG}" ] && tail -n 100 "${KIBOT_LOG}" || echo "(log file missing)"
           echo "::endgroup::"
-
-          echo "::group::2/5 PCB top SVG (F.Cu + F.Silkscreen + F.Mask + Edge.Cuts)"
-          kicad-cli pcb export svg \
-            --layers "F.Cu,F.Silkscreen,F.Mask,Edge.Cuts" \
-            --output "output/${KICAD_PROJECT}-pcb-top.svg" \
-            "${PCB}"
-          RC[pcb_top_svg]=$?
-          echo "::endgroup::"
-
-          echo "::group::3/5 PCB bottom SVG (B.Cu + B.Silkscreen + B.Mask + Edge.Cuts, mirrored)"
-          kicad-cli pcb export svg \
-            --layers "B.Cu,B.Silkscreen,B.Mask,Edge.Cuts" \
-            --mirror \
-            --output "output/${KICAD_PROJECT}-pcb-bottom.svg" \
-            "${PCB}"
-          RC[pcb_bottom_svg]=$?
-          echo "::endgroup::"
-
-          echo "::group::4/5 PCB 3D top (PNG render)"
-          kicad-cli pcb render \
-            --side top \
-            --width 1600 --height 1200 \
-            --background transparent \
-            --output "output/${KICAD_PROJECT}-3d-top.png" \
-            "${PCB}"
-          RC[render_top]=$?
-          echo "::endgroup::"
-
-          echo "::group::5/5 PCB 3D bottom (PNG render)"
-          kicad-cli pcb render \
-            --side bottom \
-            --width 1600 --height 1200 \
-            --background transparent \
-            --output "output/${KICAD_PROJECT}-3d-bottom.png" \
-            "${PCB}"
-          RC[render_bottom]=$?
-          echo "::endgroup::"
-
-          echo "::group::Exit codes summary"
-          for k in "${!RC[@]}"; do
-            code=${RC[$k]}
-            if [ "$code" -eq 0 ]; then
-              echo "  OK   ${k}"
-            else
-              echo "  FAIL ${k} (exit ${code})"
-              echo "::warning title=kicad-cli output failed::${k} returned ${code}"
-            fi
-          done
-          echo "::endgroup::"
-
           echo "::group::output/ contents"
-          ls -laR output/ || true
+          if [ -d output ]; then
+            find output -maxdepth 4 -printf '%p\n' | sort
+          else
+            echo "(no output directory)"
+          fi
           echo "::endgroup::"
 
-      # ----------------------------------------------------------------------
-      # Always upload whatever landed in output/, even if some commands
-      # failed. `if-no-files-found: warn` keeps the job green when output/
-      # is empty (we still see the failure annotations).
-      # ----------------------------------------------------------------------
+      # Always upload whatever was produced, plus the kibot log for offline
+      # debugging. `if-no-files-found: warn` keeps the job green when output
+      # is empty so we still get the annotations.
       - name: Upload visual preview artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: visual-preview-${{ github.run_number }}-${{ github.sha }}
-          path: output/
+          path: |
+            output/
+            ${{ env.KIBOT_LOG }}
           retention-days: 14
           if-no-files-found: warn
