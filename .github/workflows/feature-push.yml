@@ -55,15 +55,15 @@ jobs:
         run: |
           set +e
           SCH="${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_sch"
-          kicad-cli sch erc -f json -o output/reports/erc.json "${SCH}" || true
-          kicad-cli sch erc        -o output/reports/erc.rpt  "${SCH}" || true
+          kicad-cli sch erc --format json -o output/reports/erc.json "${SCH}" || true
+          kicad-cli sch erc                -o output/reports/erc.rpt  "${SCH}" || true
 
       - name: DRC via kicad-cli (informational)
         run: |
           set +e
           PCB="${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb"
-          kicad-cli pcb drc -f json --schematic-parity -o output/reports/drc.json "${PCB}" || true
-          kicad-cli pcb drc        --schematic-parity -o output/reports/drc.rpt  "${PCB}" || true
+          kicad-cli pcb drc --format json --schematic-parity -o output/reports/drc.json "${PCB}" || true
+          kicad-cli pcb drc                --schematic-parity -o output/reports/drc.rpt  "${PCB}" || true
 
       # ----------------------------------------------------------------------
       # Count violations — purely informational. Drives a friendly summary,
@@ -168,6 +168,21 @@ jobs:
           REPO_NAME: ${{ github.event.repository.name }}
         run: |
           set +e
+          # The navigate_results page links to erc-erc.{html,rpt,json} and
+          # drc-drc.{html,rpt,json}. KiBot's preflights don't reliably emit
+          # those filenames in this image, so create aliases from the
+          # kicad-cli outputs + the styled error-report.html.
+          if [ -d output/reports ]; then
+            for stem in erc drc; do
+              for ext in rpt json; do
+                src="output/reports/${stem}.${ext}"
+                dst="output/reports/${stem}-${stem}.${ext}"
+                [ -f "$src" ] && [ ! -f "$dst" ] && cp -f "$src" "$dst"
+              done
+              [ -f output/error-report.html ] && cp -f output/error-report.html "output/reports/${stem}-${stem}.html"
+            done
+          fi
+
           # Mirror the entire KiBot output tree under HTML/ so the
           # navigate_results webpage's relative links (../3d/, ../reports/,
           # ../schematic/, ../ibom/, …) resolve correctly when browsed
