@@ -29,7 +29,6 @@ preflight:
   run_erc: false
   run_drc: false
   check_zone_fills: false
-  ignore_unconnected: true
 
 # ----------------------------------------------------------------------------
 # Outputs: just renders. Each output is a separate file/folder.

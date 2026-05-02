@@ -53,7 +53,6 @@ preflight:
   erc_warnings: false           # warnings don't fail the build
   drc_warnings: false
   check_zone_fills: true
-  ignore_unconnected: false
   filters:
     - filter: 'CI library noise'
       error: 'lib_symbol_issues'
