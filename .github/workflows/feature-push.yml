@@ -118,13 +118,17 @@ jobs:
         continue-on-error: true
         run: |
           set +e
+          # Run the full group so the navigate_results page's links to
+          # gerbers/, assembly/, bom/, drill/, schematic/, ibom/, 3d/, and
+          # reports/ all resolve to real files. Stage 1 stays informational
+          # and never blocks regardless of ERC/DRC severity.
           kibot \
             -c "${KIBOT_CONFIG}" \
             -d output \
             -e "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_sch" \
             -b "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb" \
             --log "${KIBOT_LOG}" \
-            visual
+            full
 
       # ----------------------------------------------------------------------
       # Friendly job-summary block — visible on the run page without
