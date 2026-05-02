@@ -23,6 +23,9 @@ env:
   KIBOT_CONFIG: config/kibot/kibot_main.yaml
   KIBOT_LOG: kibot_run.log
 
+permissions:
+  contents: write
+
 jobs:
   visual:
     name: Visual preview (no gating)
@@ -147,6 +150,37 @@ jobs:
             [ -d output ] && find output -maxdepth 4 | sort || echo "(no output)"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+      # ----------------------------------------------------------------------
+      # Publish rendered PNGs back into the repo so the README on GitHub
+      # always shows the latest 3D views of the current PCB. Pushes made by
+      # GITHUB_TOKEN do not re-trigger workflows, so no infinite loop.
+      # ----------------------------------------------------------------------
+      - name: Publish 3D renders to design/pcb/outputs/Images/
+        if: always()
+        continue-on-error: true
+        run: |
+          set +e
+          DEST="design/pcb/outputs/Images"
+          mkdir -p "${DEST}"
+          if ls output/3d/*.png >/dev/null 2>&1; then
+            cp -f output/3d/*.png "${DEST}/"
+          else
+            echo "No PNG renders produced — skipping commit-back."
+            exit 0
+          fi
+          # Make git happy inside the container
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "${DEST}"
+          if git diff --cached --quiet; then
+            echo "Renders unchanged — nothing to commit."
+            exit 0
+          fi
+          git commit -m "ci: refresh 3D PCB renders for README [skip ci]"
+          # Push back to the same feature branch that triggered us
+          git push origin "HEAD:${GITHUB_REF_NAME}"
 
       - name: Upload visual preview artifact
         if: always()

@@ -64,10 +64,24 @@ import:
       DIR: 3d
   - file: kibot_out_png_3d_viewer.yaml
     definitions:
-      NAME: png_3d_angled
-      COMMENT: 3D viewer PCB render (angled isometric)
-      SUFFIX: 3d-angled
+      NAME: png_3d_angled_top
+      COMMENT: 3D viewer PCB render (angled isometric, top)
+      SUFFIX: 3d-angled-top
       VIEW: top
+      RAYTRACING: false
+      ROTATE_X: 30
+      ROTATE_Y: 0
+      ROTATE_Z: 20
+      ZOOM: 0
+      WIDTH: 1600
+      HEIGHT: 1600
+      DIR: 3d
+  - file: kibot_out_png_3d_viewer.yaml
+    definitions:
+      NAME: png_3d_angled_bottom
+      COMMENT: 3D viewer PCB render (angled isometric, bottom)
+      SUFFIX: 3d-angled-bottom
+      VIEW: bottom
       RAYTRACING: false
       ROTATE_X: 30
       ROTATE_Y: 0
@@ -97,7 +111,8 @@ groups:
       - pdf_schematic
       - png_3d_top
       - png_3d_bottom
-      - png_3d_angled
+      - png_3d_angled_top
+      - png_3d_angled_bottom
       - html_ibom
 
   - name: full
@@ -105,7 +120,8 @@ groups:
       - pdf_schematic
       - png_3d_top
       - png_3d_bottom
-      - png_3d_angled
+      - png_3d_angled_top
+      - png_3d_angled_bottom
       - html_ibom
       - csv_bom
       - csv_position
