@@ -10,7 +10,7 @@ kibot:
   version: 1
 
 preflight:
-  check_zone_fills: '@CHECK_ZONE_FILLS@'
+  check_zone_fills: @CHECK_ZONE_FILLS@
   drc:
     dir: '@DIR@'
     category: '@DIR@'
