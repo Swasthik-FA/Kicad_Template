@@ -1,13 +1,16 @@
 # ============================================================================
-# Stage 1 — Feature branch push (FAST, no gating)
+# Stage 1 — Feature branch push (RELAXED, never blocks)
 # ----------------------------------------------------------------------------
 # Trigger:  any push to a `feature/**` branch.
-# Purpose:  visual previews so the engineer can sanity-check the design
-#           without being blocked on ERC/DRC.
-# Outputs:  schematic PDF + 3 × 3D PNG renders + interactive HTML BOM
-#           (the `visual` group from config/kibot/kibot_main.yaml).
+# Purpose:  early-warning ERC/DRC + visual previews so the engineer can see
+#           issues immediately. NOTHING here ever fails the workflow —
+#           feature branches push freely. Issues only become merge-blockers
+#           at Stage 2 (PR → dev).
+# Outputs:
+#   - error-report.html       (always — green when clean, red with details when not)
+#   - schematic PDF, 3 × 3D PNG renders, interactive HTML BOM
 # ============================================================================
-name: Feature push — visual preview
+name: Feature push — visual preview (relaxed ERC/DRC)
 
 on:
   push:
@@ -22,7 +25,7 @@ env:
 
 jobs:
   visual:
-    name: Visual preview (no ERC/DRC)
+    name: Visual preview (no gating)
     runs-on: ubuntu-latest
 
     container:
@@ -37,12 +40,79 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Prepare reports directory
+        run: mkdir -p output/reports
+
+      # ----------------------------------------------------------------------
+      # ERC + DRC — run for visibility, NEVER fail the workflow on the result.
+      # `|| true` forces a zero exit regardless of violations. JSON + RPT
+      # reports land in output/reports/ and end up in the artifact.
+      # ----------------------------------------------------------------------
+      - name: ERC via kicad-cli (informational)
+        run: |
+          set +e
+          SCH="${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_sch"
+          kicad-cli sch erc -f json -o output/reports/erc.json "${SCH}" || true
+          kicad-cli sch erc        -o output/reports/erc.rpt  "${SCH}" || true
+
+      - name: DRC via kicad-cli (informational)
+        run: |
+          set +e
+          PCB="${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb"
+          kicad-cli pcb drc -f json --schematic-parity -o output/reports/drc.json "${PCB}" || true
+          kicad-cli pcb drc        --schematic-parity -o output/reports/drc.rpt  "${PCB}" || true
+
+      # ----------------------------------------------------------------------
+      # Count violations — purely informational. Drives a friendly summary,
+      # NOT a merge gate. The job never exits non-zero based on this.
+      # ----------------------------------------------------------------------
+      - name: Count violations (informational)
+        id: count
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          def tally(p):
+              try: j = json.load(open(p))
+              except Exception: return 0,0
+              e=w=0
+              for sh in j.get('sheets',[j]):
+                  for v in sh.get('violations',[]) or []:
+                      s=(v.get('severity') or '').lower()
+                      e += s=='error'; w += s=='warning'
+              for s2 in ('unconnected_items','schematic_parity'):
+                  for v in j.get(s2,[]) or []:
+                      s=(v.get('severity') or '').lower()
+                      e += s=='error'; w += s=='warning'
+              return e,w
+          ee,ew = tally('output/reports/erc.json')
+          de,dw = tally('output/reports/drc.json')
+          print(f"erc_errors={ee}")
+          print(f"erc_warnings={ew}")
+          print(f"drc_errors={de}")
+          print(f"drc_warnings={dw}")
+          PY
+
+      - name: Generate error report HTML (always)
+        if: always()
+        run: |
+          python3 config/generate_error_report.py \
+            --erc-json output/reports/erc.json \
+            --drc-json output/reports/drc.json \
+            --erc-rpt  output/reports/erc.rpt \
+            --drc-rpt  output/reports/drc.rpt \
+            --output   output/error-report.html
+
+      # ----------------------------------------------------------------------
+      # Visual outputs (KiBot — visual group). --skip-pre is harmless here
+      # because we already produced the ERC/DRC artifacts ourselves above.
+      # `continue-on-error: true` keeps the workflow green even if a render
+      # hiccups.
+      # ----------------------------------------------------------------------
       - name: KiBot — visual group
         id: kibot
         continue-on-error: true
         run: |
           set +e
-          mkdir -p output
           kibot \
             -c "${KIBOT_CONFIG}" \
             -d output \
@@ -52,15 +122,28 @@ jobs:
             --log "${KIBOT_LOG}" \
             visual
 
-      - name: Show KiBot log + output tree
+      # ----------------------------------------------------------------------
+      # Friendly job-summary block — visible on the run page without
+      # downloading anything. Pure information, never blocks.
+      # ----------------------------------------------------------------------
+      - name: Job summary
         if: always()
         run: |
-          echo "::group::Last 100 lines of KiBot log"
-          [ -f "${KIBOT_LOG}" ] && tail -n 100 "${KIBOT_LOG}" || echo "(no log)"
-          echo "::endgroup::"
-          echo "::group::output/ tree"
-          if [ -d output ]; then find output -maxdepth 4 | sort; else echo "(no output dir)"; fi
-          echo "::endgroup::"
+          {
+            echo "## Feature push — visual preview"
+            echo ""
+            echo "| Check | Errors | Warnings |"
+            echo "|-------|--------|----------|"
+            echo "| ERC   | ${{ steps.count.outputs.erc_errors }} | ${{ steps.count.outputs.erc_warnings }} |"
+            echo "| DRC   | ${{ steps.count.outputs.drc_errors }} | ${{ steps.count.outputs.drc_warnings }} |"
+            echo ""
+            echo "ERC/DRC are **informational only** on feature branches. They block merges only at the PR-to-dev stage."
+            echo ""
+            echo "### Output tree"
+            echo '```'
+            [ -d output ] && find output -maxdepth 4 | sort || echo "(no output)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload visual preview artifact
         if: always()
