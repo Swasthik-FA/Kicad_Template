@@ -1,8 +1,8 @@
 <p align="center" width="100%">
-  <img alt="Logo" width="33%" src="Logos/dummy_logo.svg">
+  <img alt="Logo" width="33%" src="docs/Kicad_Template.png">
 </p>
 
-<h1 align="center">Board Name</h1>
+<h1 align="center">Kicad_Template</h1>
 
 <p align="center" width="100%">
   <a href="https://github.com/Swasthik-FA/Kicad_Template/actions/workflows/feature-push.yml">
