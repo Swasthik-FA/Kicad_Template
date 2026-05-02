@@ -46,10 +46,10 @@ jobs:
       # The KiBot action provides the KiCad 8 + KiBot container, mounts the
       # repo, and forwards options to the kibot CLI. Same pattern as the
       # reference's "Generate outputs (KiCad 8)" step.
-      - name: Generate visuals (KiBot, KiCad 8)
+      - name: Generate visuals (KiBot, KiCad 9)
         id: kibot
         continue-on-error: true
-        uses: INTI-CMNB/KiBot@v2_dk8
+        uses: INTI-CMNB/KiBot@v2_dk9
         with:
           config: ${{ env.KIBOT_CONFIG }}
           schema: ${{ env.KICAD_PROJECT_DIR }}/${{ env.KICAD_PROJECT }}.kicad_sch
