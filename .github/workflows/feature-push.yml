@@ -2,14 +2,21 @@
 # Stage 1 — Feature branch push (FAST, no gating)
 # ----------------------------------------------------------------------------
 # Trigger:  any push to a `feature/**` branch.
-# Purpose:  give the engineer a quick visual export so they can sanity-check
-#           the schematic/PCB without being blocked on ERC/DRC.
-# Outputs:  uploaded as the `visual-preview` artifact (14-day retention).
-# Reminder: ERC / DRC are intentionally NOT run here. Those run at Stage 2
-#           when a PR is opened against `dev`.
+# Purpose:  fast visual previews so the engineer can sanity-check work
+#           without being blocked on ERC/DRC.
 #
-# Resilience: each KiBot output is invoked independently so that one bad
-# render (e.g. a flaky kicad-cli sch export) does not stop the rest.
+# Approach: drive `kicad-cli` directly (same pattern as the reference
+#           Fastbit pcb-checks.yaml workflow). KiBot adds a layer that
+#           swallows kicad-cli stderr and bails on the first failure;
+#           direct kicad-cli gives us per-command exit codes and real
+#           error messages.
+#
+# Outputs:
+#   output/Nano-Board-rev-2-schematic.pdf      (full schematic, all sheets)
+#   output/Nano-Board-rev-2-pcb-top.svg        (top copper + silk + mask)
+#   output/Nano-Board-rev-2-pcb-bottom.svg     (bottom, mirrored)
+#   output/Nano-Board-rev-2-3d-top.png         (3D top render)
+#   output/Nano-Board-rev-2-3d-bottom.png      (3D bottom render)
 # ============================================================================
 name: Feature push — visual preview
 
@@ -31,8 +38,6 @@ jobs:
       image: ghcr.io/inti-cmnb/kicad8_auto_full:latest
       options: --user root
 
-    # The KiBot container's /bin/sh is dash, which lacks bash arrays etc.
-    # Pin every `run:` step to bash so we get a consistent, modern shell.
     defaults:
       run:
         shell: bash
@@ -42,91 +47,96 @@ jobs:
         uses: actions/checkout@v4
 
       # ----------------------------------------------------------------------
-      # Diagnostic — call kicad-cli directly so we see its real error message
-      # if it fails. KiBot wraps kicad-cli and swallows stderr, which makes
-      # debugging painful. This step never fails the workflow.
+      # kicad-cli version — useful for debugging when things change.
       # ----------------------------------------------------------------------
-      - name: Diagnose — kicad-cli direct invocation
-        continue-on-error: true
+      - name: kicad-cli version
         run: |
-          set +e
-          echo "::group::kicad-cli version"
           kicad-cli version || true
-          echo "::endgroup::"
-          mkdir -p debug-output
-          echo "::group::sch export svg (raw, no extra flags)"
-          kicad-cli sch export svg \
-            --output debug-output \
-            "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_sch"
-          echo "kicad-cli sch export svg exit code: $?"
-          echo "::endgroup::"
-          echo "::group::sch export pdf (raw, no extra flags)"
-          kicad-cli sch export pdf \
-            --output debug-output/schematic.pdf \
-            "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_sch"
-          echo "kicad-cli sch export pdf exit code: $?"
-          echo "::endgroup::"
-          echo "::group::pcb export svg (raw, sanity check)"
-          kicad-cli pcb export svg \
-            --layers F.Cu,F.Silkscreen,F.Mask,Edge.Cuts \
-            --output debug-output/pcb-top.svg \
-            "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb"
-          echo "kicad-cli pcb export svg exit code: $?"
-          echo "::endgroup::"
-          echo "::group::debug-output contents"
-          ls -la debug-output/ || true
-          echo "::endgroup::"
+          kicad-cli --help-commands || true
 
       # ----------------------------------------------------------------------
-      # Run KiBot, one output at a time, with per-output failure tolerance.
-      # If any single output fails, log it and keep going. The artifact will
-      # still contain everything that did succeed.
+      # Visual outputs — each command runs independently. Failures are
+      # tolerated (set +e, no fail-fast) so one bad output never wipes the
+      # rest. The summary block prints exit codes for everything.
       # ----------------------------------------------------------------------
-      - name: Run KiBot (visual preset, per-output)
-        continue-on-error: true
+      - name: Generate visuals via kicad-cli
         run: |
           set +e
           mkdir -p output
-          OUTPUTS=(
-            schematic_pdf
-            pcb_top_png
-            pcb_bottom_png
-            pcb_svg_top
-            pcb_svg_bottom
-            png_3d_top
-            png_3d_bottom
-            png_3d_angled
-          )
-          FAILED=()
-          for out in "${OUTPUTS[@]}"; do
-            echo "::group::KiBot output: ${out}"
-            kibot \
-              -c config/kibot-visual.yaml \
-              -d output \
-              -e "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_sch" \
-              -b "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb" \
-              "${out}"
-            rc=$?
-            if [ $rc -ne 0 ]; then
-              FAILED+=("${out} (exit ${rc})")
-              echo "::warning title=KiBot output failed::${out} returned ${rc}"
-            fi
-            echo "::endgroup::"
-          done
-          echo "::group::Summary"
-          echo "Total outputs: ${#OUTPUTS[@]}"
-          echo "Failed: ${#FAILED[@]}"
-          for f in "${FAILED[@]}"; do echo "  - ${f}"; done
-          echo "::endgroup::"
-          ls -laR output/ || true
+          SCH="${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_sch"
+          PCB="${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb"
+          declare -A RC
 
+          echo "::group::1/5 Schematic PDF"
+          kicad-cli sch export pdf \
+            --output "output/${KICAD_PROJECT}-schematic.pdf" \
+            "${SCH}"
+          RC[sch_pdf]=$?
+          echo "::endgroup::"
+
+          echo "::group::2/5 PCB top SVG (F.Cu + F.Silkscreen + F.Mask + Edge.Cuts)"
+          kicad-cli pcb export svg \
+            --layers "F.Cu,F.Silkscreen,F.Mask,Edge.Cuts" \
+            --output "output/${KICAD_PROJECT}-pcb-top.svg" \
+            "${PCB}"
+          RC[pcb_top_svg]=$?
+          echo "::endgroup::"
+
+          echo "::group::3/5 PCB bottom SVG (B.Cu + B.Silkscreen + B.Mask + Edge.Cuts, mirrored)"
+          kicad-cli pcb export svg \
+            --layers "B.Cu,B.Silkscreen,B.Mask,Edge.Cuts" \
+            --mirror \
+            --output "output/${KICAD_PROJECT}-pcb-bottom.svg" \
+            "${PCB}"
+          RC[pcb_bottom_svg]=$?
+          echo "::endgroup::"
+
+          echo "::group::4/5 PCB 3D top (PNG render)"
+          kicad-cli pcb render \
+            --side top \
+            --width 1600 --height 1200 \
+            --background transparent \
+            --output "output/${KICAD_PROJECT}-3d-top.png" \
+            "${PCB}"
+          RC[render_top]=$?
+          echo "::endgroup::"
+
+          echo "::group::5/5 PCB 3D bottom (PNG render)"
+          kicad-cli pcb render \
+            --side bottom \
+            --width 1600 --height 1200 \
+            --background transparent \
+            --output "output/${KICAD_PROJECT}-3d-bottom.png" \
+            "${PCB}"
+          RC[render_bottom]=$?
+          echo "::endgroup::"
+
+          echo "::group::Exit codes summary"
+          for k in "${!RC[@]}"; do
+            code=${RC[$k]}
+            if [ "$code" -eq 0 ]; then
+              echo "  OK   ${k}"
+            else
+              echo "  FAIL ${k} (exit ${code})"
+              echo "::warning title=kicad-cli output failed::${k} returned ${code}"
+            fi
+          done
+          echo "::endgroup::"
+
+          echo "::group::output/ contents"
+          ls -laR output/ || true
+          echo "::endgroup::"
+
+      # ----------------------------------------------------------------------
+      # Always upload whatever landed in output/, even if some commands
+      # failed. `if-no-files-found: warn` keeps the job green when output/
+      # is empty (we still see the failure annotations).
+      # ----------------------------------------------------------------------
       - name: Upload visual preview artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: visual-preview-${{ github.run_number }}-${{ github.sha }}
-          path: |
-            output/
-            debug-output/
+          path: output/
           retention-days: 14
           if-no-files-found: warn
