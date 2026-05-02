@@ -1,0 +1,79 @@
+# ----------------------------------------------------------------------------
+# KiCad project ignores
+# ----------------------------------------------------------------------------
+# Backups & autosaves
+*-backups/
+*-bak
+*.bak
+*.kicad_sch-bak
+*.kicad_pcb-bak
+*.kicad_prl-bak
+_autosave-*
+#auto_saved_files#
+
+# Lock files
+*.lck
+~*.lck
+~lock.*
+
+# Cache files
+fp-info-cache
+*-cache.lib
+sym-lib-table-bak
+fp-lib-table-bak
+
+# Temporary KiCad files
+*.tmp
+fp-*.tmp
+temp-*.dsn
+
+# Per-user state (kept project-shared via .kicad_pro only)
+*.kicad_prl
+
+# ----------------------------------------------------------------------------
+# Generated manufacturing/output files
+# (these are produced by CI and should NEVER be committed)
+# ----------------------------------------------------------------------------
+manufacturing/*
+!manufacturing/.gitkeep
+output/
+gerbers/
+*-gerber/
+production/
+*.gbr
+*.drl
+*.xln
+*.pos
+
+# Generated reports
+*-erc.rpt
+*-erc.json
+*-drc.rpt
+*-drc.json
+*-erc.csv
+*-drc.csv
+*-erc.html
+*-drc.html
+error-report.html
+
+# Freerouting work files
+freerouting.dsn
+*.ses
+
+# ----------------------------------------------------------------------------
+# OS / editor
+# ----------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+.idea/
+.vscode/
+*.code-workspace
+
+# Python (for the error report script)
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/

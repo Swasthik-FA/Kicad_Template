@@ -1,0 +1,58 @@
+# ============================================================================
+# Stage 1 — Feature branch push (FAST, no gating)
+# ----------------------------------------------------------------------------
+# Trigger:  any push to a `feature/**` branch.
+# Purpose:  give the engineer a quick visual export so they can sanity-check
+#           the schematic/PCB without being blocked on ERC/DRC.
+# Outputs:  uploaded as the `visual-preview` artifact (14-day retention).
+# Reminder: ERC / DRC are intentionally NOT run here. Those run at Stage 2
+#           when a PR is opened against `dev`.
+# ============================================================================
+name: Feature push — visual preview
+
+on:
+  push:
+    branches:
+      - 'feature/**'
+
+# One env var controls every workflow. Override here if the project moves.
+env:
+  KICAD_PROJECT_DIR: hardware
+  KICAD_PROJECT: Nano-Board-rev-2
+
+jobs:
+  visual-preview:
+    name: Visual preview (no ERC/DRC)
+    runs-on: ubuntu-latest
+
+    # Run inside the official KiBot container so kicad-cli, kibot, pcbdraw,
+    # and InteractiveHtmlBom are all preinstalled. Saves ~2 min vs apt install.
+    container:
+      image: ghcr.io/inti-cmnb/kicad8_auto_full:latest
+      options: --user root
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run KiBot (visual preset)
+        # The visual preset has no preflight, so this should never fail unless
+        # the project files are broken. We still don't fail-the-build on a
+        # render hiccup — give the engineer the partial output anyway.
+        continue-on-error: true
+        run: |
+          set -eu
+          mkdir -p output
+          kibot \
+            -c config/kibot-visual.yaml \
+            -d output \
+            -e "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_sch" \
+            -b "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb"
+
+      - name: Upload visual preview artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-preview-${{ github.ref_name }}-${{ github.sha }}
+          path: output/
+          retention-days: 14
+          if-no-files-found: warn

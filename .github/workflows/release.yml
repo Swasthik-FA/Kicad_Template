@@ -1,0 +1,76 @@
+# ============================================================================
+# Stage 5 — Release  (tag-triggered manufacturing package)
+# ----------------------------------------------------------------------------
+# Trigger:  push of a tag matching `v*` on any branch (in practice, `main`).
+# Purpose:  build the full manufacturing package, ZIP it as
+#             <project>-<tag>-manufacturing.zip
+#           and create a GitHub Release with auto-generated notes and the
+#           ZIP attached.
+# ============================================================================
+name: Release — manufacturing package
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write   # needed by softprops/action-gh-release
+
+env:
+  KICAD_PROJECT_DIR: hardware
+  KICAD_PROJECT: Nano-Board-rev-2
+
+jobs:
+  release:
+    name: Build & publish release
+    runs-on: ubuntu-latest
+
+    container:
+      image: ghcr.io/inti-cmnb/kicad8_auto_full:latest
+      options: --user root
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run KiBot (full preset)
+        run: |
+          set -eu
+          mkdir -p output
+          kibot \
+            -c config/kibot-full.yaml \
+            -d output \
+            -e "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_sch" \
+            -b "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb"
+
+      - name: Build manufacturing ZIP
+        id: zip
+        run: |
+          set -eu
+          TAG="${GITHUB_REF_NAME}"
+          ZIP_NAME="${KICAD_PROJECT}-${TAG}-manufacturing.zip"
+          STAGE="release-stage"
+          rm -rf "${STAGE}" && mkdir -p "${STAGE}"
+          # Copy the production artifacts into a clean tree.
+          cp -r output/manufacturing/. "${STAGE}/"
+          cp -r output/bom            "${STAGE}/bom"
+          cp -r output/visual         "${STAGE}/visual"
+          ( cd "${STAGE}" && zip -r "../${ZIP_NAME}" . )
+          echo "zip_path=${ZIP_NAME}" >> "${GITHUB_OUTPUT}"
+          echo "zip_name=${ZIP_NAME}" >> "${GITHUB_OUTPUT}"
+
+      - name: Upload release ZIP as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.zip.outputs.zip_name }}
+          path: ${{ steps.zip.outputs.zip_path }}
+          retention-days: 90
+
+      - name: Create GitHub Release with auto-generated notes
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: ${{ steps.zip.outputs.zip_path }}

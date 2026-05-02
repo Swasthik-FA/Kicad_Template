@@ -1,0 +1,102 @@
+# ============================================================================
+# Stage 3 — Pull request into `qa`  (full QA package)
+# ----------------------------------------------------------------------------
+# Trigger:  PR opened/updated targeting `qa`.
+# Purpose:  re-verify ERC/DRC AND emit the full manufacturing package so
+#           reviewers can validate gerbers, BOM, pick-place, 3D, etc. before
+#           promoting to `main`.
+#
+# REQUIRED branch protection on `qa`:
+#   - Require pull request before merging
+#   - Require status checks to pass — required check name:  "QA package build"
+# ============================================================================
+name: PR to qa — full QA package
+
+on:
+  pull_request:
+    branches: [qa]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  KICAD_PROJECT_DIR: hardware
+  KICAD_PROJECT: Nano-Board-rev-2
+
+jobs:
+  qa-build:
+    name: QA package build
+    runs-on: ubuntu-latest
+
+    container:
+      image: ghcr.io/inti-cmnb/kicad8_auto_full:latest
+      options: --user root
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run KiBot (full preset)
+        id: kibot
+        continue-on-error: true
+        run: |
+          set -eu
+          mkdir -p output
+          kibot \
+            -c config/kibot-full.yaml \
+            -d output \
+            -e "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_sch" \
+            -b "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb"
+
+      - name: Generate error report HTML
+        if: always()
+        run: |
+          set -eu
+          python3 config/generate_error_report.py \
+            --erc-json output/reports/erc.json \
+            --drc-json output/reports/drc.json \
+            --erc-rpt  output/reports/erc.rpt \
+            --drc-rpt  output/reports/drc.rpt \
+            --pcb-image output/visual/pcb/${KICAD_PROJECT}-pcb-top.png \
+            --output output/error-report.html
+
+      - name: Upload error report (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: error-report
+          path: output/error-report.html
+          retention-days: 14
+          if-no-files-found: warn
+
+      # On success — upload the FULL QA package: gerbers, drills, BOM,
+      # pick-place, schematic PDF, PCB PDF, 3D render, STEP, iBOM.
+      - name: Upload QA manufacturing package (success only)
+        if: steps.kibot.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-package-${{ github.event.pull_request.number }}
+          path: |
+            output/manufacturing/
+            output/bom/
+            output/visual/
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Comment on PR (failure)
+        if: steps.kibot.outcome != 'success'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ❌ **QA build failed (ERC / DRC).**
+
+            See the [`error-report` artifact ↗](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) — open `error-report.html` for the violations list.
+
+      - name: Fail the build if KiBot failed
+        if: steps.kibot.outcome != 'success'
+        run: |
+          echo "ERC/DRC failed on dev→qa. See the error-report artifact."
+          exit 1

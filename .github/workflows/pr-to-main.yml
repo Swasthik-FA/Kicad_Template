@@ -1,0 +1,101 @@
+# ============================================================================
+# Stage 4 — Pull request into `main`  (final safety check)
+# ----------------------------------------------------------------------------
+# Trigger:  PR opened/updated targeting `main`.
+# Purpose:  same gate as Stage 3, on the final promotion to production.
+#           After this PR merges, a maintainer tags a release on `main` and
+#           Stage 5 (release.yml) runs to build the release artifact.
+#
+# REQUIRED branch protection on `main`:
+#   - Require pull request before merging
+#   - Require status checks to pass — required check name:  "Release-candidate build"
+#   - Recommended: require ≥1 reviewer approval, restrict who can push.
+# ============================================================================
+name: PR to main — release candidate
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  KICAD_PROJECT_DIR: hardware
+  KICAD_PROJECT: Nano-Board-rev-2
+
+jobs:
+  rc-build:
+    name: Release-candidate build
+    runs-on: ubuntu-latest
+
+    container:
+      image: ghcr.io/inti-cmnb/kicad8_auto_full:latest
+      options: --user root
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run KiBot (full preset)
+        id: kibot
+        continue-on-error: true
+        run: |
+          set -eu
+          mkdir -p output
+          kibot \
+            -c config/kibot-full.yaml \
+            -d output \
+            -e "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_sch" \
+            -b "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb"
+
+      - name: Generate error report HTML
+        if: always()
+        run: |
+          set -eu
+          python3 config/generate_error_report.py \
+            --erc-json output/reports/erc.json \
+            --drc-json output/reports/drc.json \
+            --erc-rpt  output/reports/erc.rpt \
+            --drc-rpt  output/reports/drc.rpt \
+            --pcb-image output/visual/pcb/${KICAD_PROJECT}-pcb-top.png \
+            --output output/error-report.html
+
+      - name: Upload error report (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: error-report
+          path: output/error-report.html
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Upload release-candidate package (success only)
+        if: steps.kibot.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-candidate-${{ github.event.pull_request.number }}
+          path: |
+            output/manufacturing/
+            output/bom/
+            output/visual/
+          retention-days: 90
+          if-no-files-found: warn
+
+      - name: Comment on PR (failure)
+        if: steps.kibot.outcome != 'success'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ❌ **Release-candidate build failed (ERC / DRC).**
+
+            See the [`error-report` artifact ↗](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}).
+
+      - name: Fail the build if KiBot failed
+        if: steps.kibot.outcome != 'success'
+        run: |
+          echo "ERC/DRC failed on qa→main. See the error-report artifact."
+          exit 1
