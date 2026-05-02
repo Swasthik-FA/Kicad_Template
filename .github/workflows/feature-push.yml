@@ -152,34 +152,55 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       # ----------------------------------------------------------------------
-      # Publish rendered PNGs back into the repo so the README on GitHub
-      # always shows the latest 3D views of the current PCB. Pushes made by
-      # GITHUB_TOKEN do not re-trigger workflows, so no infinite loop.
+      # Publish rendered PNGs and refresh repo-name placeholder in README.
+      # The README has marker comments <!--REPO_NAME-->...<!--/REPO_NAME-->;
+      # we always rewrite the content between them with the live GitHub repo
+      # name so the title tracks renames automatically.
+      # Pushes made by GITHUB_TOKEN do not re-trigger workflows, so no loop.
       # ----------------------------------------------------------------------
-      - name: Publish 3D renders to design/pcb/outputs/Images/
+      - name: Publish renders and refresh README repo name
         if: always()
         continue-on-error: true
+        env:
+          REPO_NAME: ${{ github.event.repository.name }}
         run: |
           set +e
           DEST="design/pcb/outputs/Images"
           mkdir -p "${DEST}"
           if ls output/3d/*.png >/dev/null 2>&1; then
             cp -f output/3d/*.png "${DEST}/"
-          else
-            echo "No PNG renders produced — skipping commit-back."
-            exit 0
           fi
+
+          # Rewrite the repo-name placeholder in README.md, idempotently.
+          if [ -f README.md ]; then
+            python3 - <<PY
+          import os, re, pathlib
+          p = pathlib.Path("README.md")
+          s = p.read_text(encoding="utf-8")
+          name = os.environ["REPO_NAME"]
+          new = re.sub(
+              r"<!--REPO_NAME-->.*?<!--/REPO_NAME-->",
+              f"<!--REPO_NAME-->{name}<!--/REPO_NAME-->",
+              s, flags=re.S,
+          )
+          if new != s:
+              p.write_text(new, encoding="utf-8")
+              print(f"README.md: repo name set to {name}")
+          else:
+              print("README.md: repo name already current")
+          PY
+          fi
+
           # Make git happy inside the container
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "${DEST}"
+          git add "${DEST}" README.md
           if git diff --cached --quiet; then
-            echo "Renders unchanged — nothing to commit."
+            echo "Nothing to commit."
             exit 0
           fi
-          git commit -m "ci: refresh 3D PCB renders for README [skip ci]"
-          # Push back to the same feature branch that triggered us
+          git commit -m "ci: refresh 3D PCB renders and README repo name [skip ci]"
           git push origin "HEAD:${GITHUB_REF_NAME}"
 
       - name: Upload visual preview artifact

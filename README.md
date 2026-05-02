@@ -2,7 +2,7 @@
   <img alt="Logo" width="33%" src="docs/Kicad_Template.png">
 </p>
 
-<h1 align="center">Kicad_Template</h1>
+<h1 align="center"><!--REPO_NAME-->Kicad_Template<!--/REPO_NAME--></h1>
 
 <p align="center" width="100%">
   <a href="https://github.com/Swasthik-FA/Kicad_Template/actions/workflows/feature-push.yml">
