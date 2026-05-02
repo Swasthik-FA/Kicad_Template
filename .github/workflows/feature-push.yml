@@ -93,7 +93,9 @@ jobs:
             pcb_bottom_png
             pcb_svg_top
             pcb_svg_bottom
-            schematic_png
+            png_3d_top
+            png_3d_bottom
+            png_3d_angled
           )
           FAILED=()
           for out in "${OUTPUTS[@]}"; do

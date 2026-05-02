@@ -2,25 +2,37 @@
 # KiBot config — VISUAL PRESET
 # ----------------------------------------------------------------------------
 # Used by:  feature-push.yml (Stage 1)
-# Purpose:  Fast iteration. Generates PNG + SVG previews of the schematic and
-#           PCB so the engineer can eyeball the work without being blocked on
+# Purpose:  Fast iteration. Generates schematic PDF + 2D/3D PCB renders so
+#           the engineer can eyeball the work without being blocked on
 #           ERC/DRC. Emphasis is on speed, not correctness.
 #
-# What this config DOES NOT do (intentionally):
-#   - Run ERC
-#   - Run DRC
-#   - Generate gerbers / drills / BOM / pick-place / 3D
-#
-# Outputs are written under the directory passed via `kibot -d <dir>`.
+# Why no SVG schematic export?
+#   `kicad-cli sch export svg` is unreliable on projects with locally-
+#   referenced symbol libraries (returns exit 3 with no useful stderr).
+#   The PDF path goes through the same backend but is more tolerant.
+#   The reference Fastbit KiBot project also avoids svg_sch_print for
+#   the same reason.
 # ============================================================================
 kibot:
   version: 1
 
-# Project-level metadata. The actual values come from the .kicad_pro file
-# at runtime; the variables below are KiBot string substitutions.
 global:
   output: '%f-%i.%x'
   date_time_format: '%Y-%m-%d_%H-%M'
+  # Suppress noisy warnings that don't affect output quality.
+  filters:
+    # W143 — deprecated preflight option (already cleaned, leave belt+braces)
+    - number: 143
+    # W009 — KiCad config without environment.vars section (irrelevant in CI)
+    - number: 9
+    # W010 — Unable to find KiCad 3D models (visual-only, OK to skip)
+    - number: 10
+    # W098 — 3D models downloaded or cached
+    - number: 98
+    # W004 — Field conflict between MANUFACTURER / Manufacturer (data hygiene)
+    - number: 4
+    # W037 — Field contains extra spaces (data hygiene)
+    - number: 37
 
 # ----------------------------------------------------------------------------
 # Preflight: NOTHING. Visual-only preset must never block the developer.
@@ -31,31 +43,25 @@ preflight:
   check_zone_fills: false
 
 # ----------------------------------------------------------------------------
-# Outputs: just renders. Each output is a separate file/folder.
+# Outputs: only the renders that actually work reliably.
 # ----------------------------------------------------------------------------
 outputs:
 
-  # --- Schematic as PNG (raster, easy to view in browser / GitHub) ---------
-  - name: schematic_png
-    comment: "Schematic — PNG raster preview"
-    type: svg_sch_print
-    dir: visual/schematic
-    options:
-      output: '%f-schematic.svg'
-
-  # --- Schematic as PDF (single document, all sheets) ----------------------
+  # --- Schematic as PDF ---------------------------------------------------
+  # Single-document PDF, all sheets. This is the workhorse — the reference
+  # Fastbit project also uses pdf_sch_print as the only schematic output.
   - name: schematic_pdf
     comment: "Schematic — PDF preview"
     type: pdf_sch_print
     dir: visual/schematic
     options:
       output: '%f-schematic.pdf'
+      background_color: false
 
-  # --- PCB top + bottom rendered as PNG via PcbDraw -----------------------
-  # PcbDraw gives a quick "marketing-style" board image. Good enough for
-  # visual inspection on a feature branch.
+  # --- PCB top + bottom rendered as PNG via PcbDraw ------------------------
+  # PcbDraw produces a clean 2D top-down render. Fast (no ray tracing).
   - name: pcb_top_png
-    comment: "PCB top view — PNG render"
+    comment: "PCB top view — 2D PNG"
     type: pcbdraw
     dir: visual/pcb
     options:
@@ -65,7 +71,7 @@ outputs:
       bottom: false
 
   - name: pcb_bottom_png
-    comment: "PCB bottom view — PNG render"
+    comment: "PCB bottom view — 2D PNG"
     type: pcbdraw
     dir: visual/pcb
     options:
@@ -74,7 +80,7 @@ outputs:
       output: '%f-pcb-bottom.png'
       bottom: true
 
-  # --- PCB SVG layer prints (per-side, all relevant layers stacked) -------
+  # --- PCB SVG layer prints (PCB SVG works fine; only SCH SVG is broken) ---
   - name: pcb_svg_top
     comment: "PCB top — SVG (copper + silk + mask)"
     type: pcb_print
@@ -103,3 +109,47 @@ outputs:
             - B.Mask
             - Edge.Cuts
           mirror: true
+
+  # --- 3D PNG renders (this is the reference project's main PNG path) -----
+  # ray_tracing: false → fast (~10–20s); good enough for feature-branch
+  # previews. The full preset uses ray_tracing: true for nicer release renders.
+  - name: png_3d_top
+    comment: "3D viewer — top render (PNG)"
+    type: render_3d
+    dir: visual/3d
+    options:
+      output: '%f-3d-top.png'
+      view: top
+      ray_tracing: false
+      width: 1600
+      height: 1200
+      auto_crop: true
+      transparent_background: true
+
+  - name: png_3d_bottom
+    comment: "3D viewer — bottom render (PNG)"
+    type: render_3d
+    dir: visual/3d
+    options:
+      output: '%f-3d-bottom.png'
+      view: bottom
+      ray_tracing: false
+      width: 1600
+      height: 1200
+      auto_crop: true
+      transparent_background: true
+
+  - name: png_3d_angled
+    comment: "3D viewer — angled isometric (PNG)"
+    type: render_3d
+    dir: visual/3d
+    options:
+      output: '%f-3d-angled.png'
+      view: top
+      rotate_x: 30
+      rotate_z: 20
+      ray_tracing: false
+      width: 1600
+      height: 1200
+      auto_crop: true
+      transparent_background: true
