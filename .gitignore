@@ -70,6 +70,7 @@ desktop.ini
 .idea/
 .vscode/
 *.code-workspace
+.claude/
 
 # Python (for the error report script)
 __pycache__/

@@ -1,0 +1,29 @@
+# ============================================================================
+# Output: Drill files in Excellon format
+# ----------------------------------------------------------------------------
+# Mirrors reference's kibot_out_excellon_drill.yaml.
+# ============================================================================
+kibot:
+  version: 1
+
+outputs:
+  - name: '@NAME@'
+    comment: '@COMMENT@'
+    type: excellon
+    dir: '@DIR@'
+    category: '@DIR@'
+    options:
+      output: '%f-%i%I%v.%x'
+      metric_units: true
+      pth_and_npth_single_file: '@PTH_NPTH@'
+      use_aux_axis_as_origin: false
+      map:
+        type: gerber
+        output: '%f-drill-map%I%v.%x'
+
+...
+definitions:
+  NAME: drill
+  COMMENT: Drill files in Excellon format
+  DIR: gerbers
+  PTH_NPTH: false

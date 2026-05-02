@@ -1,0 +1,25 @@
+# ============================================================================
+# Preflight: DRC report
+# ----------------------------------------------------------------------------
+# Generates HTML + RPT + JSON DRC reports. JSON is consumed by
+# generate_error_report.py. dont_stop=true so KiBot keeps producing
+# other outputs even if DRC violations exist; the workflow still treats
+# DRC failure as a merge blocker via the JSON parser.
+# ============================================================================
+kibot:
+  version: 1
+
+preflight:
+  check_zone_fills: '@CHECK_ZONE_FILLS@'
+  drc:
+    dir: '@DIR@'
+    category: '@DIR@'
+    dont_stop: true
+    format: 'HTML, RPT, JSON'
+    output: 'drc-%i%I%v.%x'
+    schematic_parity: true
+
+...
+definitions:
+  CHECK_ZONE_FILLS: true
+  DIR: reports

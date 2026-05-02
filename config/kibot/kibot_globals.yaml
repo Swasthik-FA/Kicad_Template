@@ -1,0 +1,34 @@
+# ============================================================================
+# KiBot global settings + warning filters
+# ----------------------------------------------------------------------------
+# Imported by kibot_main.yaml. Mirrors the reference Fastbit project's
+# kibot_yaml/kibot_globals.yaml.
+# ============================================================================
+kibot:
+  version: 1
+
+global:
+  date_time_format: '%Y-%m-%d_%H-%M'
+  filters:
+    # 'KiCad config without environment.vars section'
+    - number: 9
+    # 'Unable to find KiCad 3D models'
+    - number: 10
+    # 'Malformed value'
+    - number: 20
+    # 'More than one SCH file found in ...'
+    - number: 44
+    # 'Missing 3D model for <ref>: <abs path>' — Windows-only paths in board
+    - number: 47
+    # 'Missing font' — substituted automatically
+    - number: 58
+    # 3D models downloaded or cached
+    - number: 98
+    # 'EasyEDA component not found'
+    - number: 116
+    # 'This output depends on KiCad version'
+    - number: 143
+    # Field conflict between MANUFACTURER / Manufacturer (data hygiene)
+    - number: 4
+    # Field contains extra spaces (data hygiene)
+    - number: 37

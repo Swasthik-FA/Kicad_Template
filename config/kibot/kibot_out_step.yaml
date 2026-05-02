@@ -1,0 +1,22 @@
+# ============================================================================
+# Output: PCB 3D model in STEP format
+# ----------------------------------------------------------------------------
+# Mirrors reference's kibot_out_step.yaml.
+# ============================================================================
+kibot:
+  version: 1
+
+outputs:
+  - name: '@NAME@'
+    comment: '@COMMENT@'
+    type: step
+    dir: '@DIR@'
+    category: '@DIR@'
+    options:
+      output: '%f%I%v.%x'
+
+...
+definitions:
+  NAME: step
+  COMMENT: PCB 3D model in STEP format
+  DIR: 3d

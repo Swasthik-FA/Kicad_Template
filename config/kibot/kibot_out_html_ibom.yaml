@@ -1,0 +1,30 @@
+# ============================================================================
+# Output: Interactive HTML BOM
+# ----------------------------------------------------------------------------
+# Mirrors reference's kibot_out_html_ibom.yaml.
+# ============================================================================
+kibot:
+  version: 1
+
+outputs:
+  - name: '@NAME@'
+    comment: '@COMMENT@'
+    type: ibom
+    dir: '@DIR@'
+    category: '@DIR@'
+    options:
+      output: '%f-ibom%I%v.%x'
+      dark_mode: true
+      show_fields: 'Value,Footprint,@MPN_FIELD@,LCSC'
+      group_fields: 'Value,@MPN_FIELD@'
+      show_fabrication: true
+      highlight_pin1: 'selected'
+      hide_excluded: true
+      mark_when_checked: 'Placed'
+
+...
+definitions:
+  NAME: html_ibom
+  COMMENT: Interactive BOM in HTML format
+  DIR: bom
+  MPN_FIELD: 'MPN'

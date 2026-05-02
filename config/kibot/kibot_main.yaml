@@ -1,0 +1,114 @@
+# ============================================================================
+# KiBot main orchestrator
+# ----------------------------------------------------------------------------
+# Imports all the templated split-config files and defines two groups:
+#
+#   visual  → schematic PDF + 3 PNG renders + iBOM
+#             Used by Stage 1 (feature push). Fast, no ERC/DRC.
+#
+#   full    → everything: ERC/DRC + schematic PDF + PCB renders + STEP +
+#             gerbers + drills + BOM CSV + pick-place + iBOM
+#             Used by Stages 2-5 (PR-to-dev/qa/main + release tag).
+#
+# Invoke with:
+#   kibot -c config/kibot/kibot_main.yaml -d output \
+#         -e hardware/<project>.kicad_sch -b hardware/<project>.kicad_pcb \
+#         <group_name>
+#
+# Pattern modeled on the Fastbit reference project's kibot_yaml/kibot_main.yaml.
+# ============================================================================
+kibot:
+  version: 1
+
+# ----------------------------------------------------------------------------
+# Imports — KiBot resolves paths relative to this file.
+# ----------------------------------------------------------------------------
+import:
+  - file: kibot_globals.yaml
+
+  # Preflights (only run when the workflow does not pass --skip-pre)
+  - file: kibot_pre_erc_report.yaml
+  - file: kibot_pre_drc_report.yaml
+
+  # Schematic
+  - file: kibot_out_pdf_schematic.yaml
+
+  # 3D renders (template imported three times with different views)
+  - file: kibot_out_png_3d_viewer.yaml
+    definitions:
+      NAME: png_3d_top
+      COMMENT: 3D viewer PCB render (top)
+      SUFFIX: 3d-top
+      VIEW: top
+      RAYTRACING: false
+      ROTATE_X: 0
+      ROTATE_Y: 0
+      ROTATE_Z: 0
+      ZOOM: 0
+      WIDTH: 1600
+      HEIGHT: 1600
+      DIR: 3d
+  - file: kibot_out_png_3d_viewer.yaml
+    definitions:
+      NAME: png_3d_bottom
+      COMMENT: 3D viewer PCB render (bottom)
+      SUFFIX: 3d-bottom
+      VIEW: bottom
+      RAYTRACING: false
+      ROTATE_X: 0
+      ROTATE_Y: 0
+      ROTATE_Z: 0
+      ZOOM: 0
+      WIDTH: 1600
+      HEIGHT: 1600
+      DIR: 3d
+  - file: kibot_out_png_3d_viewer.yaml
+    definitions:
+      NAME: png_3d_angled
+      COMMENT: 3D viewer PCB render (angled isometric)
+      SUFFIX: 3d-angled
+      VIEW: top
+      RAYTRACING: false
+      ROTATE_X: 30
+      ROTATE_Y: 0
+      ROTATE_Z: 20
+      ZOOM: 0
+      WIDTH: 1600
+      HEIGHT: 1600
+      DIR: 3d
+
+  # BOM and assembly
+  - file: kibot_out_html_ibom.yaml
+  - file: kibot_out_csv_bom.yaml
+  - file: kibot_out_csv_pos.yaml
+
+  # Manufacturing
+  - file: kibot_out_gerber.yaml
+  - file: kibot_out_excellon_drill.yaml
+  - file: kibot_out_step.yaml
+
+# ----------------------------------------------------------------------------
+# Groups — pick the set of outputs to run via positional arg on kibot CLI.
+# ----------------------------------------------------------------------------
+groups:
+
+  - name: visual
+    outputs:
+      - pdf_schematic
+      - png_3d_top
+      - png_3d_bottom
+      - png_3d_angled
+      - html_ibom
+
+  - name: full
+    outputs:
+      - pdf_schematic
+      - png_3d_top
+      - png_3d_bottom
+      - png_3d_angled
+      - html_ibom
+      - csv_bom
+      - csv_position
+      - step
+      - gerbers
+      - drill

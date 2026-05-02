@@ -1,0 +1,42 @@
+# ============================================================================
+# Output: Pick-and-place / centroid file in CSV
+# ----------------------------------------------------------------------------
+# Mirrors reference's kibot_out_csv_pos.yaml. JLCPCB-style columns.
+# ============================================================================
+kibot:
+  version: 1
+
+outputs:
+  - name: '@NAME@'
+    comment: '@COMMENT@'
+    type: position
+    dir: '@DIR@'
+    category: '@DIR@'
+    options:
+      output: '%f-cpl%I%v.%x'
+      format: CSV
+      units: millimeters
+      only_smd: true
+      include_virtual: false
+      separate_files_for_front_and_back: false
+      columns:
+        - id: Ref
+          name: Designator
+        - id: Val
+          name: Value
+        - id: Package
+          name: Package
+        - id: PosX
+          name: 'Mid X'
+        - id: PosY
+          name: 'Mid Y'
+        - id: Rot
+          name: Rotation
+        - id: Side
+          name: Layer
+
+...
+definitions:
+  NAME: csv_position
+  COMMENT: Pick-and-place file in CSV format
+  DIR: assembly
