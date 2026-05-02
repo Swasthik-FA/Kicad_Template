@@ -68,6 +68,7 @@ jobs:
       # ----------------------------------------------------------------------
       - name: Count violations (informational)
         id: count
+        continue-on-error: true
         run: |
           python3 - <<'PY' >> "$GITHUB_OUTPUT"
           import json
@@ -94,13 +95,14 @@ jobs:
 
       - name: Generate error report HTML (always)
         if: always()
+        continue-on-error: true
         run: |
           python3 config/generate_error_report.py \
             --erc-json output/reports/erc.json \
             --drc-json output/reports/drc.json \
             --erc-rpt  output/reports/erc.rpt \
             --drc-rpt  output/reports/drc.rpt \
-            --output   output/error-report.html
+            --output   output/error-report.html || true
 
       # ----------------------------------------------------------------------
       # Visual outputs (KiBot — visual group). --skip-pre is harmless here
@@ -128,6 +130,7 @@ jobs:
       # ----------------------------------------------------------------------
       - name: Job summary
         if: always()
+        continue-on-error: true
         run: |
           {
             echo "## Feature push — visual preview"
@@ -147,6 +150,7 @@ jobs:
 
       - name: Upload visual preview artifact
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: visual-preview-${{ github.run_number }}-${{ github.sha }}
@@ -155,3 +159,13 @@ jobs:
             ${{ env.KIBOT_LOG }}
           retention-days: 14
           if-no-files-found: warn
+
+      # ----------------------------------------------------------------------
+      # Final step — explicit success. Stage 1 is informational only and
+      # must NEVER mark the run red, no matter what happened upstream.
+      # ----------------------------------------------------------------------
+      - name: Always succeed
+        if: always()
+        run: |
+          echo "Stage 1 (feature push) is informational only — run finishes green regardless of ERC/DRC/render results."
+          exit 0
