@@ -34,6 +34,11 @@ jobs:
       image: ghcr.io/inti-cmnb/kicad8_auto_full:latest
       options: --user root
 
+    # /bin/sh in the container is dash; pin run steps to bash for sanity.
+    defaults:
+      run:
+        shell: bash
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4

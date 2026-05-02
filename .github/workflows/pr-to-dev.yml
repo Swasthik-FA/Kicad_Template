@@ -40,6 +40,11 @@ jobs:
       image: ghcr.io/inti-cmnb/kicad8_auto_full:latest
       options: --user root
 
+    # /bin/sh in the container is dash; pin run steps to bash for sanity.
+    defaults:
+      run:
+        shell: bash
+
     # We DO NOT mark the whole job as continue-on-error. The whole point of
     # this stage is to fail when ERC/DRC fails. We use step-level
     # `continue-on-error: true` only on the KiBot step so the failure-handler

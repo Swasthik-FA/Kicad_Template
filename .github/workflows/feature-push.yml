@@ -31,6 +31,12 @@ jobs:
       image: ghcr.io/inti-cmnb/kicad8_auto_full:latest
       options: --user root
 
+    # The KiBot container's /bin/sh is dash, which lacks bash arrays etc.
+    # Pin every `run:` step to bash so we get a consistent, modern shell.
+    defaults:
+      run:
+        shell: bash
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
