@@ -27,8 +27,13 @@ jobs:
     runs-on: ubuntu-latest
 
     container:
-      image: ghcr.io/inti-cmnb/kicad8_auto_full:latest
+      image: ghcr.io/inti-cmnb/kicad_auto:ki9
       options: --user root
+
+    # /bin/sh in the container is dash; pin run steps to bash for sanity.
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: Checkout
