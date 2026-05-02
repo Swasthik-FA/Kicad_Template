@@ -123,7 +123,6 @@ jobs:
             -d output \
             -e "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_sch" \
             -b "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb" \
-            --skip-pre erc,drc \
             --log "${KIBOT_LOG}" \
             visual
 
@@ -165,21 +164,16 @@ jobs:
           REPO_NAME: ${{ github.event.repository.name }}
         run: |
           set +e
-          DEST="Images"
-          mkdir -p "${DEST}" Report HTML
-          if ls output/3d/*.png >/dev/null 2>&1; then
-            cp -f output/3d/*.png "${DEST}/"
+          # Mirror the entire KiBot output tree under HTML/ so the
+          # navigate_results webpage's relative links (../3d/, ../reports/,
+          # ../schematic/, ../ibom/, …) resolve correctly when browsed
+          # from the repo. Wipe HTML/ first to avoid stale files.
+          mkdir -p HTML
+          find HTML -mindepth 1 ! -name '.gitkeep' -exec rm -rf {} + 2>/dev/null
+          if [ -d output ]; then
+            cp -rf output/. HTML/
           fi
-          # ERC/DRC raw reports → Report/
-          for f in output/reports/erc.rpt  output/reports/erc.json \
-                   output/reports/drc.rpt  output/reports/drc.json; do
-            [ -f "$f" ] && cp -f "$f" Report/
-          done
-          # KiBot navigate_results website + self-contained error report → HTML/
-          if [ -d output/HTML ]; then
-            cp -rf output/HTML/. HTML/
-          fi
-          [ -f output/error-report.html ] && cp -f output/error-report.html HTML/
+          [ -f output/error-report.html ] && cp -f output/error-report.html HTML/error-report.html
 
           # Rewrite the repo-name placeholder in README.md, idempotently.
           if [ -f README.md ]; then
@@ -205,7 +199,7 @@ jobs:
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "${DEST}" Report HTML README.md
+          git add HTML README.md
           if git diff --cached --quiet; then
             echo "Nothing to commit."
             exit 0
