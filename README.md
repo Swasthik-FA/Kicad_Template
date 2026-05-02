@@ -10,10 +10,6 @@
   </a>
 </p>
 
-<p align="center" width="100%">
-    <img src="Images/dummy_image.png">
-</p>
-
 ***
 
 <table align="center">
@@ -33,7 +29,7 @@
 
 ## SPECIFICATIONS
 
-| Parameter | Value | 
+| Parameter | Value |
 | --- | --- |
 | Dimensions | 106.58 × 54.37 mm |
 
@@ -73,6 +69,6 @@
     ├─ Schematic          # PDF of schematic
     ├─ Templates          # Title block templates
     ├─ Testing
-    │  └─ Testpoints      # Testpoints tables      
+    │  └─ Testpoints      # Testpoints tables
     │
     └─ Variants           # Outputs for assembly variants
