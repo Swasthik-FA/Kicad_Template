@@ -42,17 +42,13 @@ preflight:
 outputs:
 
   # --------------------------------------------------------------------------
-  # Schematic PDF
-  # mirrors kibot_out_pdf_schematic.yaml from the reference project.
-  # --------------------------------------------------------------------------
-  - name: pdf_schematic
-    comment: Schematic in PDF format
-    type: pdf_sch_print
-    dir: visual/schematic
-    options:
-      output: '%f-schematic.pdf'
-      background_color: false
-
+  # NOTE: Schematic PDF intentionally OMITTED from the visual preset.
+  # `kicad-cli sch export pdf` returns exit 3 on this project's .kicad_sch
+  # (every format — pdf, svg — fails the same way). KiBot is strict and
+  # halts on the first output failure, so including the schematic here
+  # blocks every PNG render that comes after it. The schematic export
+  # remains in the FULL preset (kibot-full.yaml) for QA/release builds
+  # — and we'll diagnose the underlying schematic issue separately.
   # --------------------------------------------------------------------------
   # 3D viewer PNG renders — top, bottom, angled isometric.
   # All three mirror the reference's kibot_out_png_3d_viewer.yaml options.
