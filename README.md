@@ -2,16 +2,16 @@
   <img alt="Logo" width="33%" src="docs/Kicad_Template.png">
 </p>
 
-<p align="center" width="100%">
-  <img alt="Board" src="design/pcb/outputs/Images/Nano-Board-rev-2-3d-angled-top.png" width="70%">
-</p>
-
 <h1 align="center"><!--REPO_NAME-->Kicad_Template<!--/REPO_NAME--></h1>
 
 <p align="center" width="100%">
   <a href="https://github.com/Swasthik-FA/Kicad_Template/actions/workflows/feature-push.yml">
     <img alt="CI Badge" src="https://github.com/Swasthik-FA/Kicad_Template/actions/workflows/feature-push.yml/badge.svg">
   </a>
+</p>
+
+<p align="center" width="100%">
+    <img src="Images/dummy_image.png">
 </p>
 
 ***
