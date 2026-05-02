@@ -165,7 +165,7 @@ jobs:
           REPO_NAME: ${{ github.event.repository.name }}
         run: |
           set +e
-          DEST="design/pcb/outputs/Images"
+          DEST="Images"
           mkdir -p "${DEST}" Report HTML
           if ls output/3d/*.png >/dev/null 2>&1; then
             cp -f output/3d/*.png "${DEST}/"
