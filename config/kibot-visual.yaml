@@ -2,105 +2,124 @@
 # KiBot config — VISUAL PRESET
 # ----------------------------------------------------------------------------
 # Used by:  feature-push.yml (Stage 1)
-# Purpose:  Fast iteration. Generates PNG + SVG previews of the schematic and
-#           PCB so the engineer can eyeball the work without being blocked on
-#           ERC/DRC. Emphasis is on speed, not correctness.
+# Purpose:  Schematic PDF + 3D PNG renders for fast feature-branch previews.
 #
-# What this config DOES NOT do (intentionally):
-#   - Run ERC
-#   - Run DRC
-#   - Generate gerbers / drills / BOM / pick-place / 3D
-#
-# Outputs are written under the directory passed via `kibot -d <dir>`.
+# Modeled directly on the Fastbit reference project's
+#   kibot_yaml/kibot_out_pdf_schematic.yaml
+#   kibot_yaml/kibot_out_png_3d_viewer.yaml
+#   kibot_yaml/kibot_globals.yaml
+# (templates expanded inline; same option set, same warning filters).
 # ============================================================================
 kibot:
   version: 1
 
-# Project-level metadata. The actual values come from the .kicad_pro file
-# at runtime; the variables below are KiBot string substitutions.
 global:
-  output: '%f-%i.%x'
   date_time_format: '%Y-%m-%d_%H-%M'
+  # Same warning numbers the reference suppresses — these are noisy and
+  # don't affect output correctness in CI.
+  filters:
+    # 'KiCad config without environment.vars section'
+    - number: 9
+    # 'Unable to find KiCad 3D models'
+    - number: 10
+    # 'More than one SCH file found'
+    - number: 44
+    # 3D models downloaded or cached
+    - number: 98
+    # 'This output depends on KiCad version, use blender_export instead'
+    - number: 143
+    # Field conflict between MANUFACTURER / Manufacturer (data hygiene)
+    - number: 4
+    # Field contains extra spaces (data hygiene)
+    - number: 37
 
-# ----------------------------------------------------------------------------
-# Preflight: NOTHING. Visual-only preset must never block the developer.
-# ----------------------------------------------------------------------------
+# Visual preset is fast iteration only — never run ERC/DRC here.
 preflight:
   run_erc: false
   run_drc: false
   check_zone_fills: false
-  ignore_unconnected: true
 
-# ----------------------------------------------------------------------------
-# Outputs: just renders. Each output is a separate file/folder.
-# ----------------------------------------------------------------------------
 outputs:
 
-  # --- Schematic as PNG (raster, easy to view in browser / GitHub) ---------
-  - name: schematic_png
-    comment: "Schematic — PNG raster preview"
-    type: svg_sch_print
-    dir: visual/schematic
-    options:
-      output: '%f-schematic.svg'
-
-  # --- Schematic as PDF (single document, all sheets) ----------------------
-  - name: schematic_pdf
-    comment: "Schematic — PDF preview"
+  # --------------------------------------------------------------------------
+  # Schematic PDF — mirrors kibot_out_pdf_schematic.yaml from the reference.
+  # --------------------------------------------------------------------------
+  - name: pdf_schematic
+    comment: Schematic in PDF format
     type: pdf_sch_print
     dir: visual/schematic
     options:
       output: '%f-schematic.pdf'
+      background_color: false
 
-  # --- PCB top + bottom rendered as PNG via PcbDraw -----------------------
-  # PcbDraw gives a quick "marketing-style" board image. Good enough for
-  # visual inspection on a feature branch.
-  - name: pcb_top_png
-    comment: "PCB top view — PNG render"
-    type: pcbdraw
-    dir: visual/pcb
+  # --------------------------------------------------------------------------
+  # 3D viewer PNG renders — top, bottom, angled isometric.
+  # All three mirror the reference's kibot_out_png_3d_viewer.yaml options.
+  # ray_tracing kept FALSE for the visual preset (fast); the full preset
+  # used by Stage 3+ enables ray_tracing for nicer release renders.
+  # --------------------------------------------------------------------------
+  - name: png_3d_top
+    comment: 3D viewer PCB render in PNG format — top
+    type: render_3d
+    dir: visual/3d
     options:
-      format: png
-      dpi: 300
-      output: '%f-pcb-top.png'
-      bottom: false
+      output: '%f-3d-top.png'
+      auto_crop: true
+      enable_crop_workaround: true
+      rotate_x: 0
+      rotate_y: 0
+      rotate_z: 0
+      zoom: 0
+      height: 1600
+      width: 1600
+      view: top
+      ray_tracing: false
+      force_stackup_colors: true
+      orthographic: false
+      transparent_background: true
+      transparent_background_color: '#00FF00'
+      transparent_background_fuzz: 40
 
-  - name: pcb_bottom_png
-    comment: "PCB bottom view — PNG render"
-    type: pcbdraw
-    dir: visual/pcb
+  - name: png_3d_bottom
+    comment: 3D viewer PCB render in PNG format — bottom
+    type: render_3d
+    dir: visual/3d
     options:
-      format: png
-      dpi: 300
-      output: '%f-pcb-bottom.png'
-      bottom: true
+      output: '%f-3d-bottom.png'
+      auto_crop: true
+      enable_crop_workaround: true
+      rotate_x: 0
+      rotate_y: 0
+      rotate_z: 0
+      zoom: 0
+      height: 1600
+      width: 1600
+      view: bottom
+      ray_tracing: false
+      force_stackup_colors: true
+      orthographic: false
+      transparent_background: true
+      transparent_background_color: '#00FF00'
+      transparent_background_fuzz: 40
 
-  # --- PCB SVG layer prints (per-side, all relevant layers stacked) -------
-  - name: pcb_svg_top
-    comment: "PCB top — SVG (copper + silk + mask)"
-    type: pcb_print
-    dir: visual/pcb
+  - name: png_3d_angled
+    comment: 3D viewer PCB render in PNG format — angled isometric
+    type: render_3d
+    dir: visual/3d
     options:
-      format: SVG
-      output: '%f-pcb-top.svg'
-      pages:
-        - layers:
-            - F.Cu
-            - F.Silkscreen
-            - F.Mask
-            - Edge.Cuts
-
-  - name: pcb_svg_bottom
-    comment: "PCB bottom — SVG (copper + silk + mask, mirrored)"
-    type: pcb_print
-    dir: visual/pcb
-    options:
-      format: SVG
-      output: '%f-pcb-bottom.svg'
-      pages:
-        - layers:
-            - B.Cu
-            - B.Silkscreen
-            - B.Mask
-            - Edge.Cuts
-          mirror: true
+      output: '%f-3d-angled.png'
+      auto_crop: true
+      enable_crop_workaround: true
+      rotate_x: 30
+      rotate_y: 0
+      rotate_z: 20
+      zoom: 0
+      height: 1600
+      width: 1600
+      view: top
+      ray_tracing: false
+      force_stackup_colors: true
+      orthographic: false
+      transparent_background: true
+      transparent_background_color: '#00FF00'
+      transparent_background_fuzz: 40
