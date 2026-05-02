@@ -17,9 +17,9 @@
 ***
 
 <p align="center">
-  <img alt="3D Top Angled" src="design/pcb/outputs/Images/Nano-Board-rev-2-3d-angled-top.png" width="45%">
+  <img alt="3D Top" src="design/pcb/outputs/Images/Nano-Board-rev-2-3d-top.png" width="45%">
 &nbsp; &nbsp; &nbsp; &nbsp;
-  <img alt="3D Bottom Angled" src="design/pcb/outputs/Images/Nano-Board-rev-2-3d-angled-bottom.png" width="45%">
+  <img alt="3D Bottom" src="design/pcb/outputs/Images/Nano-Board-rev-2-3d-bottom.png" width="45%">
 </p>
 
 ***
