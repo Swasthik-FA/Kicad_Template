@@ -101,6 +101,16 @@ import:
   - file: kibot_out_excellon_drill.yaml
   - file: kibot_out_step.yaml
 
+  # Navigation webpage — must come last so it can index everything above.
+  - file: kibot_out_navigate_results.yaml
+    definitions:
+      NAME: html_navigate_results
+      COMMENT: Results webpage in HTML format
+      DIR: HTML
+      TITLE: 'Kicad_Template'
+      LOGO: ''
+      LOGO_URL: ''
+
 # ----------------------------------------------------------------------------
 # Groups — pick the set of outputs to run via positional arg on kibot CLI.
 # ----------------------------------------------------------------------------
@@ -114,6 +124,7 @@ groups:
       - png_3d_angled_top
       - png_3d_angled_bottom
       - html_ibom
+      - html_navigate_results
 
   - name: full
     outputs:
@@ -128,3 +139,4 @@ groups:
       - step
       - gerbers
       - drill
+      - html_navigate_results

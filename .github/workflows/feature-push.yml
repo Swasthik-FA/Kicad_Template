@@ -177,6 +177,13 @@ jobs:
           done
           # Self-contained HTML report → HTML/
           [ -f output/error-report.html ] && cp -f output/error-report.html HTML/
+          # KiBot navigate_results website → design/pcb/outputs/HTML/
+          NAV_DEST="design/pcb/outputs/HTML"
+          if [ -d output/HTML ]; then
+            mkdir -p "${NAV_DEST}"
+            rm -rf "${NAV_DEST:?}"/*
+            cp -rf output/HTML/. "${NAV_DEST}/"
+          fi
 
           # Rewrite the repo-name placeholder in README.md, idempotently.
           if [ -f README.md ]; then
@@ -202,7 +209,7 @@ jobs:
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "${DEST}" Report HTML README.md
+          git add "${DEST}" "${NAV_DEST}" Report HTML README.md
           if git diff --cached --quiet; then
             echo "Nothing to commit."
             exit 0
