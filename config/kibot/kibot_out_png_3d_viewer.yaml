@@ -18,14 +18,14 @@ outputs:
       output: '%f-@SUFFIX@%I%v.%x'
       auto_crop: true
       enable_crop_workaround: true
-      rotate_x: '@ROTATE_X@'
-      rotate_y: '@ROTATE_Y@'
-      rotate_z: '@ROTATE_Z@'
-      zoom: '@ZOOM@'
-      width: '@WIDTH@'
-      height: '@HEIGHT@'
+      rotate_x: @ROTATE_X@
+      rotate_y: @ROTATE_Y@
+      rotate_z: @ROTATE_Z@
+      zoom: @ZOOM@
+      width: @WIDTH@
+      height: @HEIGHT@
       view: '@VIEW@'
-      ray_tracing: '@RAYTRACING@'
+      ray_tracing: @RAYTRACING@
       force_stackup_colors: true
       orthographic: false
       transparent_background: true

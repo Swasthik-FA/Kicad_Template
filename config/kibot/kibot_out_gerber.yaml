@@ -24,7 +24,7 @@ outputs:
     options:
       output: '%f-%i%I%v.%x'
       subtract_mask_from_silk: true
-      plot_footprint_refs: '@PLOT_REFS@'
+      plot_footprint_refs: @PLOT_REFS@
       plot_footprint_values: false
       create_gerber_job_file: true
       use_protel_extensions: true

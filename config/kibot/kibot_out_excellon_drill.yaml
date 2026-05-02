@@ -15,7 +15,7 @@ outputs:
     options:
       output: '%f-%i%I%v.%x'
       metric_units: true
-      pth_and_npth_single_file: '@PTH_NPTH@'
+      pth_and_npth_single_file: @PTH_NPTH@
       use_aux_axis_as_origin: false
       map:
         type: gerber
