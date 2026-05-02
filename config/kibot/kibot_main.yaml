@@ -69,10 +69,10 @@ import:
       SUFFIX: 3d-angled-top
       VIEW: top
       RAYTRACING: false
-      ROTATE_X: 30
-      ROTATE_Y: 0
-      ROTATE_Z: 20
-      ZOOM: 0
+      ROTATE_X: 2
+      ROTATE_Y: -1
+      ROTATE_Z: 1
+      ZOOM: -1
       WIDTH: 1600
       HEIGHT: 1600
       DIR: 3d
@@ -83,10 +83,10 @@ import:
       SUFFIX: 3d-angled-bottom
       VIEW: bottom
       RAYTRACING: false
-      ROTATE_X: 30
-      ROTATE_Y: 0
-      ROTATE_Z: 20
-      ZOOM: 0
+      ROTATE_X: 2
+      ROTATE_Y: -1
+      ROTATE_Z: -1
+      ZOOM: -1
       WIDTH: 1600
       HEIGHT: 1600
       DIR: 3d
