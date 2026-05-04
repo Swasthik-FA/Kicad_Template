@@ -170,27 +170,18 @@ jobs:
           set +e
           # The navigate_results page links to erc-erc.{html,rpt,json} and
           # drc-drc.{html,rpt,json}. KiBot's preflights don't reliably emit
-          # those filenames in this image, so alias from the kicad-cli
-          # outputs and the styled error-report.html.
-          echo "--- output/reports/ before aliasing ---"
-          ls -la output/reports/ 2>&1 || true
-          mkdir -p output/reports
-          for stem in erc drc; do
-            for ext in rpt json; do
-              src="output/reports/${stem}.${ext}"
-              dst="output/reports/${stem}-${stem}.${ext}"
-              if [ -f "$src" ]; then
-                cp -f "$src" "$dst"
-                echo "aliased: $src -> $dst"
-              fi
+          # those filenames in this image, so create aliases from the
+          # kicad-cli outputs + the styled error-report.html.
+          if [ -d output/reports ]; then
+            for stem in erc drc; do
+              for ext in rpt json; do
+                src="output/reports/${stem}.${ext}"
+                dst="output/reports/${stem}-${stem}.${ext}"
+                [ -f "$src" ] && [ ! -f "$dst" ] && cp -f "$src" "$dst"
+              done
+              [ -f output/error-report.html ] && cp -f output/error-report.html "output/reports/${stem}-${stem}.html"
             done
-            if [ -f output/error-report.html ]; then
-              cp -f output/error-report.html "output/reports/${stem}-${stem}.html"
-              echo "aliased: error-report.html -> output/reports/${stem}-${stem}.html"
-            fi
-          done
-          echo "--- output/reports/ after aliasing ---"
-          ls -la output/reports/ 2>&1 || true
+          fi
 
           # Mirror the entire KiBot output tree under HTML/ so the
           # navigate_results webpage's relative links (../3d/, ../reports/,
@@ -202,36 +193,6 @@ jobs:
             cp -rf output/. HTML/
           fi
           [ -f output/error-report.html ] && cp -f output/error-report.html HTML/error-report.html
-
-          # Rewrite navigate_*.html so clicking a .rpt or .json link triggers
-          # a download instead of rendering the file inline (browsers default
-          # to inline text view for these MIME types). The navigate page uses
-          # onclick="location.href='URL'" — replace with an in-place anchor
-          # that has the download attribute set.
-          if ls HTML/HTML/*.html >/dev/null 2>&1; then
-            python3 - <<'PY'
-          import re, pathlib, html
-          pat = re.compile(
-              r'''onclick="location\.href='([^']+\.(rpt|json|csv|step|stp|gbr|drl|gbrjob|gbl|gtl|gbo|gto|gbs|gts|gbp|gtp|gm1))'"''',
-              re.IGNORECASE,
-          )
-          def repl(m):
-              url = m.group(1)
-              # Build a tiny snippet that creates an anchor and clicks it.
-              fname = url.rsplit('/', 1)[-1]
-              return (
-                  'onclick="(function(){var a=document.createElement(\'a\');'
-                  f'a.href=\'{url}\';a.download=\'{fname}\';'
-                  'document.body.appendChild(a);a.click();a.remove();})()"'
-              )
-          for f in pathlib.Path('HTML/HTML').glob('*.html'):
-              s = f.read_text(encoding='utf-8', errors='ignore')
-              new = pat.sub(repl, s)
-              if new != s:
-                  f.write_text(new, encoding='utf-8')
-                  print(f"download-rewrite: {f}")
-          PY
-          fi
 
           # Rewrite the repo-name placeholder in README.md, idempotently.
           if [ -f README.md ]; then
