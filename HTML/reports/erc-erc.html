@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Nano-Board-rev-2 — ERC/DRC report</title>
+<title>Nano-Board-rev-2 — ERC report</title>
 <style>
 *,*::before,*::after { box-sizing: border-box; }
 body {
@@ -137,21 +137,19 @@ code {
 </head>
 <body>
 <header class="banner">
-  <h1>Nano-Board-rev-2 &mdash; design rule check report</h1>
-  <div class="sub">branch <code>feature/test-pipeline</code> &middot; commit <code>56b7400a</code> &middot; <a href="https://github.com/Swasthik-FA/Kicad_Template/actions/runs/25305756400">workflow run</a> &middot; 2026-05-04 07:07:34 UTC</div>
+  <h1>Nano-Board-rev-2 &mdash; erc report</h1>
+  <div class="sub">branch <code>feature/test-pipeline</code> &middot; commit <code>52e47793</code> &middot; <a href="https://github.com/Swasthik-FA/Kicad_Template/actions/runs/25306050150">workflow run</a> &middot; 2026-05-04 07:15:40 UTC</div>
 </header>
-<div class="fail-bar ok">&#10003; ERC / DRC passed</div>
+<div class="fail-bar ok">&#10003; ERC passed</div>
 <main>
   <div class="cards">
-    <div class="card ok"><div class="label">ERC errors</div><div class="value">0</div></div><div class="card warn"><div class="label">ERC warnings</div><div class="value">10</div></div><div class="card ok"><div class="label">DRC errors</div><div class="value">0</div></div><div class="card ok"><div class="label">DRC warnings</div><div class="value">0</div></div>
+    <div class="card ok"><div class="label">ERC errors</div><div class="value">0</div></div><div class="card warn"><div class="label">ERC warnings</div><div class="value">10</div></div>
     <div class="card"><div class="label">ERC</div><div class="value"><span class="badge ok">PASS</span></div></div>
-    <div class="card"><div class="label">DRC</div><div class="value"><span class="badge ok">PASS</span></div></div>
   </div>
 
   
 
   <section><h2>ERC violations <span class="badge error">0 errors</span> <span class="badge warning">10 warnings</span></h2><div class="toolbar"><input type="search" placeholder="Search refs, nets, descriptions…" data-target="erc-table" data-kind="search"/><label>Severity <select data-target="erc-table" data-kind="sev"><option value="all">all</option><option value="error">errors only</option><option value="warning">warnings only</option></select></label><label>Code <select data-target="erc-table" data-kind="code"><option value="all">all</option><option value="footprint_link_issues">footprint_link_issues</option><option value="lib_symbol_issues">lib_symbol_issues</option></select></label></div><table id="erc-table"><thead><tr><th>Severity</th><th>Code</th><th>Description</th><th>Components / Nets</th><th>Location</th></tr></thead><tbody><tr class="severity-warning" data-severity="warning" data-code="footprint_link_issues"><td><span class="badge warning">warning</span></td><td><code>footprint_link_issues</code></td><td>The current configuration does not include the footprint library &#x27;FB_Library&#x27;.</td><td class="refs"><code>J2</code></td><td>sheet <code>/</code><br>@ <code>2.77 mm, 0.85 mm</code></td></tr><tr class="severity-warning" data-severity="warning" data-code="footprint_link_issues"><td><span class="badge warning">warning</span></td><td><code>footprint_link_issues</code></td><td>The current configuration does not include the footprint library &#x27;Footprint&#x27;.</td><td class="refs"><code>U8</code> <code>MPU6050</code></td><td>sheet <code>/</code><br>@ <code>3.28 mm, 1.71 mm</code></td></tr><tr class="severity-warning" data-severity="warning" data-code="lib_symbol_issues"><td><span class="badge warning">warning</span></td><td><code>lib_symbol_issues</code></td><td>The current configuration does not include the symbol library &#x27;MPU&#x27;</td><td class="refs"><code>U8</code> <code>MPU6050</code></td><td>sheet <code>/</code><br>@ <code>3.28 mm, 1.71 mm</code></td></tr><tr class="severity-warning" data-severity="warning" data-code="footprint_link_issues"><td><span class="badge warning">warning</span></td><td><code>footprint_link_issues</code></td><td>The current configuration does not include the footprint library &#x27;fp&#x27;.</td><td class="refs"><code>J6</code></td><td>sheet <code>/</code><br>@ <code>1.05 mm, 1.50 mm</code></td></tr><tr class="severity-warning" data-severity="warning" data-code="footprint_link_issues"><td><span class="badge warning">warning</span></td><td><code>footprint_link_issues</code></td><td>The current configuration does not include the footprint library &#x27;FPC_CONNECTOR24&#x27;.</td><td class="refs"><code>U3</code></td><td>sheet <code>/</code><br>@ <code>2.48 mm, 0.67 mm</code></td></tr><tr class="severity-warning" data-severity="warning" data-code="lib_symbol_issues"><td><span class="badge warning">warning</span></td><td><code>lib_symbol_issues</code></td><td>The current configuration does not include the symbol library &#x27;LCD_Con&#x27;</td><td class="refs"><code>U3</code></td><td>sheet <code>/</code><br>@ <code>2.48 mm, 0.67 mm</code></td></tr><tr class="severity-warning" data-severity="warning" data-code="footprint_link_issues"><td><span class="badge warning">warning</span></td><td><code>footprint_link_issues</code></td><td>The current configuration does not include the footprint library &#x27;model&#x27;.</td><td class="refs"><code>U6</code></td><td>sheet <code>/</code><br>@ <code>0.84 mm, 0.84 mm</code></td></tr><tr class="severity-warning" data-severity="warning" data-code="lib_symbol_issues"><td><span class="badge warning">warning</span></td><td><code>lib_symbol_issues</code></td><td>The current configuration does not include the symbol library &#x27;STLINK-V3MODS&#x27;</td><td class="refs"><code>U6</code></td><td>sheet <code>/</code><br>@ <code>0.84 mm, 0.84 mm</code></td></tr><tr class="severity-warning" data-severity="warning" data-code="footprint_link_issues"><td><span class="badge warning">warning</span></td><td><code>footprint_link_issues</code></td><td>The current configuration does not include the footprint library &#x27;model&#x27;.</td><td class="refs"><code>U6</code></td><td>sheet <code>/</code><br>@ <code>1.92 mm, 0.94 mm</code></td></tr><tr class="severity-warning" data-severity="warning" data-code="lib_symbol_issues"><td><span class="badge warning">warning</span></td><td><code>lib_symbol_issues</code></td><td>The current configuration does not include the symbol library &#x27;STLINK-V3MODS&#x27;</td><td class="refs"><code>U6</code></td><td>sheet <code>/</code><br>@ <code>1.92 mm, 0.94 mm</code></td></tr></tbody></table></section>
-  <section><h2>DRC violations <span class="badge ok">no issues</span></h2><div class="empty">No DRC violations entries.</div></section>
 
   <section class="fixes">
     <h3>How to fix common issues</h3>
