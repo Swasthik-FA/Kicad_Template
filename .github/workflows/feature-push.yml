@@ -183,6 +183,16 @@ jobs:
                   print(f"stripped rpt/json tiles from {nav}")
           PY
 
+          # Override KiBot's auto-generated styles.css with our themed
+          # version (config/web/styles.css). Same class names, modernized
+          # look. Done before mirroring so the copy lands in HTML/HTML/.
+          if [ -f config/web/styles.css ]; then
+              for css in $(find output -name styles.css); do
+                  cp -f config/web/styles.css "$css"
+                  echo "themed $css"
+              done
+          fi
+
           # Mirror the entire KiBot output tree under HTML/ so the
           # navigate_results webpage's relative links (../3d/, ../reports/,
           # ../schematic/, ../ibom/, …) resolve correctly when browsed
