@@ -1,35 +1,7 @@
 ** Drc report for Nano-Board-rev-2.kicad_pcb **
-** Created on 2026-05-04T05:27:18+0000 **
+** Created on 2026-05-04T06:38:08+0000 **
 
-** Found 67 DRC violations **
-[clearance]: Clearance violation (zone clearance 0.5000 mm; actual 0.4192 mm)
-    Local override; error
-    @(113.5500 mm, 102.4550 mm): Track [+5V] on B.Cu, length 8.8247 mm
-    @(59.9920 mm, 72.0700 mm): Zone [GND] on F.Cu and B.Cu, priority 0
-[clearance]: Clearance violation (zone clearance 0.5000 mm; actual 0.3612 mm)
-    Local override; error
-    @(86.5215 mm, 117.2777 mm): Track [MPU_INT] on B.Cu, length 1.4042 mm
-    @(59.9920 mm, 72.0700 mm): Zone [GND] on F.Cu and B.Cu, priority 0
-[clearance]: Clearance violation (zone clearance 0.5000 mm; actual 0.4805 mm)
-    Local override; error
-    @(105.6328 mm, 99.1600 mm): Track [+3V3] on F.Cu, length 4.5252 mm
-    @(59.9920 mm, 72.0700 mm): Zone [GND] on F.Cu and B.Cu, priority 0
-[clearance]: Clearance violation (zone clearance 0.5000 mm; actual 0.3612 mm)
-    Local override; error
-    @(86.5215 mm, 115.8735 mm): Track [MPU_INT] on B.Cu, length 4.1789 mm
-    @(59.9920 mm, 72.0700 mm): Zone [GND] on F.Cu and B.Cu, priority 0
-[clearance]: Clearance violation (zone clearance 0.5000 mm; actual 0.2204 mm)
-    Local override; error
-    @(98.0375 mm, 109.5074 mm): Via [+3V3] on F.Cu - B.Cu
-    @(59.9920 mm, 72.0700 mm): Zone [GND] on F.Cu and B.Cu, priority 0
-[clearance]: Clearance violation (zone clearance 0.5000 mm; actual 0.3308 mm)
-    Local override; error
-    @(93.1000 mm, 113.2700 mm): Track [SWO] on B.Cu, length 10.6066 mm
-    @(59.9920 mm, 72.0700 mm): Zone [GND] on F.Cu and B.Cu, priority 0
-[clearance]: Clearance violation (zone clearance 0.5000 mm; actual 0.4204 mm)
-    Local override; error
-    @(98.0375 mm, 109.5074 mm): Track [+3V3] on B.Cu, length 0.1701 mm
-    @(59.9920 mm, 72.0700 mm): Zone [GND] on F.Cu and B.Cu, priority 0
+** Found 60 DRC violations **
 [lib_footprint_mismatch]: Footprint 'LED_0603_1608Metric' does not match copy in library 'LED_SMD'.
     Local override; warning
     @(115.9323 mm, 114.5992 mm): Footprint D2
