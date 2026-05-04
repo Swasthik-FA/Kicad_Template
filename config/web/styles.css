@@ -2,55 +2,73 @@
  * Custom navigate-page theme.
  * ----------------------------------------------------------------------------
  * Replaces KiBot's default styles.css after every CI run (see the publish
- * step in .github/workflows/feature-push.yml). Class names mirror what
- * KiBot's navigate_results template emits, so the same HTML works.
+ * step in .github/workflows/feature-push.yml). Class names + section ids
+ * mirror what KiBot's navigate_results template emits, so the same HTML
+ * works without modification.
+ *
+ * Design language:
+ *   - Glassmorphism (frosted-glass surfaces with backdrop blur)
+ *   - Minimal / generous whitespace, restrained typography
+ *   - Dashboard-style: per-category accent colour stripes, status dots
  * ============================================================================ */
 
 /* Design tokens ============================================================ */
 
 :root {
     /* Dark theme palette */
-    --d-bg:            #0B0F19;
-    --d-surface:       #131826;
-    --d-surface-2:     #1B2235;
-    --d-border:        #232B40;
-    --d-border-strong: #2E3753;
-    --d-text:          #E5E7EB;
-    --d-text-muted:    #94A3B8;
-    --d-text-dim:      #64748B;
+    --d-bg:            #0A0E1A;
+    --d-bg-2:          #0E1320;
+    --d-surface:       rgba(22, 28, 45, 0.55);     /* glass: translucent */
+    --d-surface-solid: #161C2D;                     /* opaque fallback */
+    --d-surface-2:     rgba(30, 38, 60, 0.50);
+    --d-border:        rgba(255, 255, 255, 0.07);
+    --d-border-strong: rgba(255, 255, 255, 0.14);
+    --d-text:          #E6E9F2;
+    --d-text-muted:    #94A0B8;
+    --d-text-dim:      #5C6679;
 
     /* Light theme palette */
-    --l-bg:            #F8FAFC;
-    --l-surface:       #FFFFFF;
-    --l-surface-2:     #F1F5F9;
-    --l-border:        #E2E8F0;
-    --l-border-strong: #CBD5E1;
+    --l-bg:            #F7F8FB;
+    --l-bg-2:          #FFFFFF;
+    --l-surface:       rgba(255, 255, 255, 0.65);
+    --l-surface-solid: #FFFFFF;
+    --l-surface-2:     rgba(244, 246, 251, 0.70);
+    --l-border:        rgba(15, 23, 42, 0.06);
+    --l-border-strong: rgba(15, 23, 42, 0.12);
     --l-text:          #0F172A;
     --l-text-muted:    #475569;
-    --l-text-dim:      #64748B;
+    --l-text-dim:      #94A3B8;
 
-    /* Brand / accent — modern indigo-blue, swap to taste */
-    --accent:          #6366F1;
-    --accent-hover:    #818CF8;
-    --accent-active:   #4F46E5;
+    /* Brand / accent — keep monochrome restraint, single highlight colour */
+    --accent:          #818CF8;
+    --accent-strong:   #6366F1;
+    --accent-soft:     rgba(129, 140, 248, 0.18);
 
-    /* Per-mode aliases (the rest of the file uses these, never the d-/l-) */
+    /* Per-mode aliases */
     --bg:              var(--d-bg);
+    --bg-2:            var(--d-bg-2);
     --surface:         var(--d-surface);
+    --surface-solid:   var(--d-surface-solid);
     --surface-2:       var(--d-surface-2);
     --border:          var(--d-border);
     --border-strong:   var(--d-border-strong);
     --text:            var(--d-text);
     --text-muted:      var(--d-text-muted);
     --text-dim:        var(--d-text-dim);
-    --hover:           var(--accent-hover);
-    --hover-act:       var(--accent-active);
+
+    /* Category accent colours (dashboard-style stripes) */
+    --c-reports:       #F87171;  /* ERC/DRC — red */
+    --c-schematic:     #A78BFA;  /* PDF schematic — violet */
+    --c-3d:            #60A5FA;  /* 3D / STEP — blue */
+    --c-bom:           #34D399;  /* iBOM / CSV BOM — green */
+    --c-assembly:      #FBBF24;  /* pick-place — amber */
+    --c-gerbers:       #2DD4BF;  /* gerbers / drill — teal */
 
     /* Legacy aliases — KiBot's template references these names directly */
     --light-bg-color:           var(--l-bg);
     --dark-bg-color:            var(--d-bg);
-    --light-bg-color-banner:    var(--l-surface);
-    --dark-bg-color-banner:     var(--d-surface);
+    --light-bg-color-banner:    var(--l-surface-solid);
+    --dark-bg-color-banner:     var(--d-surface-solid);
     --light-text-color:         var(--l-text);
     --dark-text-color:          var(--d-text);
     --dark-text-color-accent:   var(--d-text-muted);
@@ -58,56 +76,81 @@
     --light-banner-hover:       var(--l-surface-2);
     --dark-banner-hover:        var(--d-surface-2);
     --text-color-accent:        var(--text-muted);
-    --light-hover-color:        var(--accent);
-    --light-hover-color-act:    var(--accent-active);
+    --light-hover-color:        var(--accent-strong);
+    --light-hover-color-act:    var(--accent-strong);
     --dark-hover-color:         var(--accent);
-    --dark-hover-color-act:     var(--accent-active);
+    --dark-hover-color-act:     var(--accent-strong);
 
     /* Shape & elevation */
-    --radius-sm: 8px;
-    --radius:    14px;
-    --radius-lg: 18px;
-    --shadow-1:  0 1px 2px rgba(0,0,0,.25), 0 1px 3px rgba(0,0,0,.15);
-    --shadow-2:  0 4px 12px rgba(0,0,0,.25), 0 2px 4px rgba(0,0,0,.15);
-    --shadow-3:  0 12px 32px rgba(0,0,0,.35), 0 4px 8px rgba(0,0,0,.20);
+    --radius-sm: 10px;
+    --radius:    16px;
+    --radius-lg: 22px;
+    --shadow-1:  0 1px 2px rgba(0,0,0,.30), 0 1px 3px rgba(0,0,0,.20);
+    --shadow-2:  0 8px 24px rgba(0,0,0,.30), 0 2px 6px rgba(0,0,0,.16);
+    --shadow-3:  0 20px 48px rgba(0,0,0,.42), 0 6px 14px rgba(0,0,0,.22);
     --t-fast:    .15s cubic-bezier(.4,0,.2,1);
-    --t-base:    .25s cubic-bezier(.4,0,.2,1);
+    --t-base:    .28s cubic-bezier(.4,0,.2,1);
+    --blur:      22px;
 }
 
 body.light-mode {
     --bg:            var(--l-bg);
+    --bg-2:          var(--l-bg-2);
     --surface:       var(--l-surface);
+    --surface-solid: var(--l-surface-solid);
     --surface-2:     var(--l-surface-2);
     --border:        var(--l-border);
     --border-strong: var(--l-border-strong);
     --text:          var(--l-text);
     --text-muted:    var(--l-text-muted);
     --text-dim:      var(--l-text-dim);
-    --shadow-1:  0 1px 2px rgba(15,23,42,.06), 0 1px 3px rgba(15,23,42,.05);
-    --shadow-2:  0 4px 12px rgba(15,23,42,.08), 0 2px 4px rgba(15,23,42,.04);
-    --shadow-3:  0 12px 32px rgba(15,23,42,.12), 0 4px 8px rgba(15,23,42,.06);
+    --accent-soft:   rgba(99, 102, 241, 0.12);
+    --shadow-1:  0 1px 2px rgba(15,23,42,.05), 0 1px 3px rgba(15,23,42,.04);
+    --shadow-2:  0 6px 18px rgba(15,23,42,.07), 0 2px 4px rgba(15,23,42,.04);
+    --shadow-3:  0 16px 40px rgba(15,23,42,.10), 0 4px 8px rgba(15,23,42,.05);
 }
 
-/* Reset / base ============================================================= */
+/* Base ===================================================================== */
 
 *, *::before, *::after { box-sizing: border-box; }
+
+html, body { height: 100%; }
 
 body {
     margin: 0;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
                  'Helvetica Neue', Arial, sans-serif;
-    background-color: var(--bg);
     color: var(--text);
-    line-height: 1.55;
+    line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    transition: background-color var(--t-base), color var(--t-base);
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    transition: color var(--t-base);
+
+    /* Base canvas */
+    background-color: var(--bg);
+
+    /* Mesh-gradient: three soft radial blobs over a dark base.
+       Fixed attachment so they don't scroll with the content. */
+    background-image:
+        radial-gradient(900px 600px at 12% -10%, rgba(99, 102, 241, 0.18), transparent 60%),
+        radial-gradient(700px 500px at 95% 0%,  rgba(56, 189, 248, 0.12), transparent 65%),
+        radial-gradient(800px 600px at 50% 110%, rgba(168, 85, 247, 0.14), transparent 60%);
+    background-attachment: fixed;
+    background-repeat: no-repeat;
 }
 
-body.dark-mode  { background-color: var(--d-bg); color: var(--d-text); }
-body.light-mode { background-color: var(--l-bg); color: var(--l-text); }
+body.light-mode {
+    background-color: var(--l-bg);
+    background-image:
+        radial-gradient(900px 600px at 12% -10%, rgba(99, 102, 241, 0.10), transparent 60%),
+        radial-gradient(700px 500px at 95% 0%,  rgba(14, 165, 233, 0.08), transparent 65%),
+        radial-gradient(800px 600px at 50% 110%, rgba(168, 85, 247, 0.08), transparent 60%);
+}
 
-/* Top bar ================================================================== */
+::selection { background: var(--accent-soft); color: var(--text); }
+
+/* Top bar (frosted glass) ================================================== */
 
 #topmenu {
     position: fixed;
@@ -116,11 +159,11 @@ body.light-mode { background-color: var(--l-bg); color: var(--l-text); }
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 20px;
+    padding: 14px 22px;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
-    backdrop-filter: saturate(180%) blur(8px);
-    -webkit-backdrop-filter: saturate(180%) blur(8px);
+    backdrop-filter: saturate(180%) blur(var(--blur));
+    -webkit-backdrop-filter: saturate(180%) blur(var(--blur));
     box-shadow: var(--shadow-1);
     transition: background-color var(--t-base), border-color var(--t-base);
 }
@@ -136,25 +179,21 @@ button, #open-navbar, #close-navbar {
     transition: color var(--t-fast), background-color var(--t-fast),
                 transform var(--t-fast);
 }
-
 button:hover, #open-navbar:hover, #close-navbar:hover {
     color: var(--accent);
     background: var(--surface-2);
 }
-
 button:active, #open-navbar:active, #close-navbar:active {
-    color: var(--accent-active);
+    color: var(--accent-strong);
     transform: scale(.96);
 }
-
 button { font-size: 18px; margin: 0 4px; }
-
 #open-navbar, #close-navbar {
     width: 40px; height: 40px; line-height: 40px;
     text-align: center; font-size: 24px; margin-left: 8px;
 }
 
-/* Sidebar ================================================================== */
+/* Sidebar (frosted glass) ================================================== */
 
 .navbar {
     position: fixed;
@@ -162,6 +201,8 @@ button { font-size: 18px; margin: 0 4px; }
     width: 0;
     height: calc(100% - var(--top-menu-height, 60px));
     background: var(--surface);
+    backdrop-filter: saturate(180%) blur(var(--blur));
+    -webkit-backdrop-filter: saturate(180%) blur(var(--blur));
     border-right: 1px solid var(--border);
     overflow-x: hidden;
     overflow-y: auto;
@@ -172,25 +213,42 @@ button { font-size: 18px; margin: 0 4px; }
     z-index: 999;
 }
 
-.navbar > ul:first-child { margin-top: 16px; }
+.navbar > ul:first-child { margin-top: 14px; }
 
 .navbar-output {
     display: block;
-    padding: 9px 24px;
+    padding: 9px 16px 9px 28px;
     text-decoration: none;
-    font-size: 14px;
+    font-size: 13.5px;
     font-weight: 500;
     color: var(--text-muted);
-    border-radius: 6px;
-    margin: 1px 8px;
-    transition: color var(--t-fast), background-color var(--t-fast);
+    border-radius: 8px;
+    margin: 1px 10px;
+    position: relative;
+    transition: color var(--t-fast), background-color var(--t-fast),
+                padding-left var(--t-fast);
+}
+
+.navbar-output::before {
+    content: "";
+    position: absolute;
+    left: 14px; top: 50%;
+    transform: translateY(-50%);
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    transition: background-color var(--t-fast), transform var(--t-fast);
 }
 
 .navbar-output:hover {
-    color: var(--accent);
+    color: var(--text);
     background: var(--surface-2);
+    padding-left: 32px;
 }
-.navbar-output:active { color: var(--accent-active); }
+.navbar-output:hover::before {
+    background: var(--accent);
+    transform: translateY(-50%) scale(1.6);
+}
 
 .navbar-category {
     list-style: none;
@@ -202,26 +260,23 @@ button { font-size: 18px; margin: 0 4px; }
     display: flex;
     align-items: center;
     cursor: pointer;
-    color: var(--text);
-    padding: 10px 18px;
-    font-weight: 600;
-    font-size: 13px;
+    color: var(--text-muted);
+    padding: 11px 16px;
+    font-weight: 700;
+    font-size: 11px;
     text-transform: uppercase;
-    letter-spacing: .04em;
-    border-radius: 6px;
-    margin: 1px 8px;
+    letter-spacing: .12em;
+    border-radius: 8px;
+    margin: 4px 10px;
     transition: background-color var(--t-fast), color var(--t-fast);
 }
 
-.navbar-category .folder > span:hover {
-    color: var(--accent);
-    background: var(--surface-2);
-}
-.navbar-category .folder > span:active { color: var(--accent-active); }
+.navbar-category .folder > span:hover { color: var(--text); background: var(--surface-2); }
+.navbar-category .folder > span:active { color: var(--accent-strong); }
 
 .navbar-category .folder-contents {
     list-style: none;
-    margin: 4px 0 8px 12px;
+    margin: 2px 0 10px 12px;
     padding: 0;
 }
 
@@ -229,9 +284,9 @@ button { font-size: 18px; margin: 0 4px; }
 .chevron {
     display: block;
     width: 0; height: 0;
-    border: 6px solid transparent;
+    border: 5px solid transparent;
     border-left-color: var(--text-dim);
-    margin-right: 10px;
+    margin-right: 12px;
     transform-origin: 25% 50%;
     transition: transform var(--t-fast), border-left-color var(--t-fast);
     pointer-events: none;
@@ -241,63 +296,70 @@ button { font-size: 18px; margin: 0 4px; }
     transform: rotate(90deg);
 }
 .folder > span:hover .chevron { border-left-color: var(--accent); }
-.folder > span:active .chevron { border-left-color: var(--accent-active); }
 
 /* Main content ============================================================= */
 
 #main {
     transition: margin-left var(--t-base);
-    padding: 24px clamp(16px, 4vw, 48px);
-    margin-top: 80px;
-    max-width: 1400px;
+    padding: 32px clamp(20px, 5vw, 56px);
+    margin-top: 88px;
+    max-width: 1500px;
     margin-left: auto;
     margin-right: auto;
 }
 
+/* Section header — bold, generous whitespace, with a coloured stripe.
+   Accent colour is set per category via .output-virtual-box[id^=...] below. */
 .output-comment {
-    font-size: 1.6em;
-    font-weight: 600;
+    font-size: 1.45rem;
+    font-weight: 700;
     color: var(--text);
-    margin: 32px 0 16px;
+    margin: 56px 0 22px;
+    letter-spacing: -0.02em;
     text-align: left;
-    letter-spacing: -0.01em;
     position: relative;
-    padding-left: 14px;
+    padding-left: 18px;
+    text-transform: capitalize;
 }
-
 .output-comment::before {
     content: "";
     position: absolute;
     left: 0; top: 50%;
     transform: translateY(-50%);
-    width: 4px; height: 28px;
-    background: linear-gradient(180deg, var(--accent), var(--accent-active));
-    border-radius: 2px;
+    width: 5px; height: 26px;
+    border-radius: 999px;
+    background: var(--accent);
+    box-shadow: 0 0 16px var(--accent-soft);
 }
 
 .generator {
     text-align: right;
     font-size: .75rem;
     color: var(--text-dim);
-    margin-top: 24px;
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
 }
 .generator a { color: var(--accent); text-decoration: none; }
 .generator a:hover { text-decoration: underline; }
 
-/* Cards (categories + outputs) ============================================ */
+/* Cards (glass) ============================================================ */
 
 .items-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 18px;
+    gap: 20px;
     padding: 4px 0;
 }
 
 .category-box, .output-box {
+    position: relative;
     background: var(--surface);
+    backdrop-filter: saturate(180%) blur(var(--blur));
+    -webkit-backdrop-filter: saturate(180%) blur(var(--blur));
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 22px 20px;
+    padding: 24px 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -306,50 +368,74 @@ button { font-size: 18px; margin: 0 4px; }
     text-align: center;
     color: var(--text);
     box-shadow: var(--shadow-1);
-    transition: transform var(--t-base),
-                background-color var(--t-fast),
-                border-color var(--t-fast),
-                box-shadow var(--t-base);
     cursor: pointer;
     width: 100%;
-    min-height: 160px;
+    min-height: 168px;
+    overflow: hidden;
+    transition: transform var(--t-base),
+                border-color var(--t-base),
+                box-shadow var(--t-base);
+    isolation: isolate;
 }
 
-/* Wider tile variant — used for previews like 3D PNGs and PDF schematic */
+/* Subtle inner highlight (top edge gloss) */
+.category-box::before, .output-box::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(180deg,
+        rgba(255,255,255,.05) 0%,
+        rgba(255,255,255,0) 22%);
+    z-index: 0;
+}
+
+/* Category accent dot — top-right, matches the section colour */
+.output-box::after {
+    content: "";
+    position: absolute;
+    top: 14px; right: 14px;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent-soft);
+    opacity: .7;
+    z-index: 1;
+}
+
 .output-box.wide {
     grid-column: span 2;
-    min-height: 240px;
+    min-height: 260px;
 }
-@media (max-width: 720px) {
+@media (max-width: 760px) {
     .output-box.wide { grid-column: span 1; }
 }
 
 .category-box:hover, .output-box:hover {
-    transform: translateY(-3px);
+    transform: translateY(-4px);
     border-color: var(--accent);
     box-shadow: var(--shadow-3);
-    background: var(--surface);
 }
 
 .category-box img, .output-box img {
     max-width: 100%;
     max-height: 100%;
     height: auto;
-    margin: 4px 0 12px;
-    border-radius: 8px;
+    margin: 4px 0 14px;
+    border-radius: 10px;
     transition: transform var(--t-base);
+    z-index: 1;
 }
-
-.category-box:hover img, .output-box:hover img {
-    transform: scale(1.04);
-}
+.category-box:hover img, .output-box:hover img { transform: scale(1.03); }
 
 .category-title {
-    font-size: 1.1em;
+    font-size: 1.05rem;
     font-weight: 600;
     color: var(--text);
     margin: 0;
     letter-spacing: -0.01em;
+    z-index: 1;
 }
 
 .output-box .filename {
@@ -359,26 +445,41 @@ button { font-size: 18px; margin: 0 4px; }
     font-weight: 600;
     margin: 6px 0 4px;
     word-break: break-word;
-    line-height: 1.35;
+    line-height: 1.4;
+    z-index: 1;
 }
 
 .output-box .output-name {
     color: var(--text-muted);
-    font-size: 11px;
+    font-size: 10.5px;
     text-transform: uppercase;
-    letter-spacing: .08em;
-    font-weight: 500;
+    letter-spacing: .1em;
+    font-weight: 600;
     margin: 0;
+    z-index: 1;
 }
 
-/* Anchor offset for navbar scroll */
+/* Anchor offset */
 .output-virtual-box {
     position: relative;
-    padding-top: var(--top-menu-height, 80px);
-    margin-top: calc(-1 * var(--top-menu-height, 80px));
+    padding-top: var(--top-menu-height, 88px);
+    margin-top: calc(-1 * var(--top-menu-height, 88px));
     pointer-events: none;
 }
 .output-virtual-box > * { pointer-events: auto; }
+
+/* ---------------------------------------------------------------------------
+ * Per-category accent. Each output-virtual-box receives a colour based on
+ * its id (set by KiBot from the output name). This drives the heading
+ * stripe, card hover border, and corner status dot.
+ * ------------------------------------------------------------------------- */
+
+[id="erc"], [id="drc"]               { --accent: var(--c-reports);   --accent-soft: rgba(248,113,113,.20); }
+[id="pdf_schematic"]                 { --accent: var(--c-schematic); --accent-soft: rgba(167,139,250,.20); }
+[id^="png_3d"], [id="step"]          { --accent: var(--c-3d);        --accent-soft: rgba(96,165,250,.20); }
+[id="html_ibom"], [id="csv_bom"]     { --accent: var(--c-bom);       --accent-soft: rgba(52,211,153,.20); }
+[id="csv_position"]                  { --accent: var(--c-assembly);  --accent-soft: rgba(251,191,36,.20); }
+[id="gerbers"], [id="drill"]         { --accent: var(--c-gerbers);   --accent-soft: rgba(45,212,191,.20); }
 
 /* Theme toggle ============================================================= */
 
@@ -395,29 +496,25 @@ button { font-size: 18px; margin: 0 4px; }
     cursor: pointer;
     inset: 0;
     background: var(--surface-2);
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-strong);
     border-radius: 999px;
     transition: background-color var(--t-base), border-color var(--t-base);
+    backdrop-filter: blur(8px);
 }
-
 .theme-switch span::before {
     position: absolute;
     content: "";
     height: 18px; width: 18px;
     left: 2px; bottom: 2px;
-    background: var(--accent);
+    background: linear-gradient(135deg, var(--accent), var(--accent-strong));
     border-radius: 50%;
+    box-shadow: 0 1px 4px rgba(0,0,0,.3), 0 0 0 1px rgba(255,255,255,.05) inset;
     transition: none;
-    box-shadow: 0 1px 3px rgba(0,0,0,.2);
 }
-
 .theme-switch span.animate::before {
-    transition: transform var(--t-base), background-color var(--t-base);
+    transition: transform var(--t-base), background var(--t-base);
 }
-
-.theme-switch input:checked + span::before {
-    transform: translateX(22px);
-}
+.theme-switch input:checked + span::before { transform: translateX(22px); }
 
 /* Scrollbars =============================================================== */
 
@@ -428,27 +525,31 @@ body::-webkit-scrollbar, .navbar::-webkit-scrollbar {
 }
 body::-webkit-scrollbar-thumb, .navbar::-webkit-scrollbar-thumb {
     border-radius: 6px;
-    background: var(--surface-2);
-    border: 2px solid var(--bg);
+    background: var(--border-strong);
+    border: 2px solid transparent;
+    background-clip: padding-box;
 }
 body::-webkit-scrollbar-thumb:hover, .navbar::-webkit-scrollbar-thumb:hover {
-    background: var(--border-strong);
+    background: var(--text-dim);
+    background-clip: padding-box;
 }
 body::-webkit-scrollbar-track, .navbar::-webkit-scrollbar-track {
-    background: var(--bg);
+    background: transparent;
 }
 body::-webkit-scrollbar-corner, .navbar::-webkit-scrollbar-corner {
-    background: var(--bg);
+    background: transparent;
 }
 
 /* Markdown ================================================================= */
 
 .markdown-content {
     font-family: inherit;
-    line-height: 1.65;
-    padding: 20px 24px;
+    line-height: 1.7;
+    padding: 24px 28px;
     border-radius: var(--radius);
     background: var(--surface);
+    backdrop-filter: saturate(180%) blur(var(--blur));
+    -webkit-backdrop-filter: saturate(180%) blur(var(--blur));
     border: 1px solid var(--border);
     max-width: 100%;
     margin: 0 auto;
@@ -462,22 +563,28 @@ body::-webkit-scrollbar-corner, .navbar::-webkit-scrollbar-corner {
     border-collapse: collapse;
     margin: 16px 0 24px;
     font-size: 14px;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
 }
 .markdown-content table th,
 .markdown-content table td {
-    border: 1px solid var(--border);
-    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    padding: 12px 14px;
     text-align: left;
 }
 .markdown-content table th {
     background: var(--surface-2);
     font-weight: 600;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: .08em;
+    color: var(--text-muted);
 }
 
 .markdown-content pre {
     background: var(--surface-2);
     color: var(--text);
-    padding: 14px 16px;
+    padding: 16px 18px;
     border-radius: var(--radius-sm);
     overflow-x: auto;
     border: 1px solid var(--border);
@@ -501,18 +608,22 @@ body::-webkit-scrollbar-corner, .navbar::-webkit-scrollbar-corner {
     color: var(--accent);
     text-decoration: none;
     transition: color var(--t-fast);
+    border-bottom: 1px solid transparent;
 }
-.markdown-content a:hover { text-decoration: underline; color: var(--accent-hover); }
+.markdown-content a:hover {
+    color: var(--accent-strong);
+    border-bottom-color: var(--accent-strong);
+}
 
 .markdown-content img {
     max-width: 100%;
     height: auto;
     display: block;
-    margin: 12px auto;
+    margin: 16px auto;
     border-radius: var(--radius-sm);
 }
 
-/* Search bar =============================================================== */
+/* Search ================================================================== */
 
 #search-container {
     padding: 14px 14px 8px;
@@ -524,33 +635,33 @@ body::-webkit-scrollbar-corner, .navbar::-webkit-scrollbar-corner {
 
 #search-bar {
     width: 100%;
-    padding: 9px 12px;
-    border: 1px solid var(--border);
+    padding: 10px 14px;
+    border: 1px solid var(--border-strong);
     border-radius: var(--radius-sm);
     outline: none;
     background: var(--surface-2);
+    backdrop-filter: blur(8px);
     color: var(--text);
     font-size: 13px;
     box-sizing: border-box;
-    transition: border-color var(--t-fast), background-color var(--t-fast);
+    transition: border-color var(--t-fast), background-color var(--t-fast),
+                box-shadow var(--t-fast);
 }
-
 #search-bar::placeholder { color: var(--text-dim); }
-
 #search-bar:focus {
     border-color: var(--accent);
-    background: var(--surface);
-    box-shadow: 0 0 0 3px rgba(99,102,241,.18);
+    background: var(--surface-solid);
+    box-shadow: 0 0 0 4px var(--accent-soft);
 }
 
 #autocomplete-list {
     list-style: none;
     padding: 4px;
     margin: 6px 0 0;
-    max-height: 220px;
+    max-height: 240px;
     overflow-y: auto;
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: var(--surface-solid);
+    border: 1px solid var(--border-strong);
     border-radius: var(--radius-sm);
     position: absolute;
     z-index: 1001;
@@ -561,14 +672,13 @@ body::-webkit-scrollbar-corner, .navbar::-webkit-scrollbar-corner {
 }
 
 #autocomplete-list li {
-    padding: 8px 10px;
+    padding: 9px 12px;
     cursor: pointer;
     border-radius: 6px;
     color: var(--text);
     font-size: 13px;
     transition: background-color var(--t-fast), color var(--t-fast);
 }
-
 #autocomplete-list li:hover,
 #autocomplete-list li.highlighted,
 .highlighted {
@@ -576,7 +686,7 @@ body::-webkit-scrollbar-corner, .navbar::-webkit-scrollbar-corner {
     color: var(--accent);
 }
 
-/* Page-load anti-flicker (preserve KiBot behavior) ========================= */
+/* Anti-flicker (preserve KiBot behavior) =================================== */
 
 body.no-transition,
 .no-transition .output-box,
@@ -595,12 +705,31 @@ body.no-transition .category-box,
     transition: none !important;
 }
 
+/* Entry animation — subtle fade-up on cards on first paint ================= */
+
+@keyframes fade-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0);   }
+}
+@media (prefers-reduced-motion: no-preference) {
+    .items-container > .output-box,
+    .items-container > .category-box {
+        animation: fade-up .45s cubic-bezier(.4,0,.2,1) both;
+    }
+    .items-container > *:nth-child(2)  { animation-delay: .04s; }
+    .items-container > *:nth-child(3)  { animation-delay: .08s; }
+    .items-container > *:nth-child(4)  { animation-delay: .12s; }
+    .items-container > *:nth-child(5)  { animation-delay: .16s; }
+    .items-container > *:nth-child(6)  { animation-delay: .20s; }
+    .items-container > *:nth-child(n+7){ animation-delay: .24s; }
+}
+
 /* Small screens ============================================================ */
 
 @media (max-width: 640px) {
-    #topmenu { padding: 10px 12px; }
-    #main { padding: 16px 14px; margin-top: 72px; }
-    .output-comment { font-size: 1.3em; margin: 24px 0 12px; }
-    .items-container { gap: 12px; }
+    #topmenu { padding: 10px 14px; }
+    #main { padding: 18px 14px; margin-top: 76px; }
+    .output-comment { font-size: 1.2rem; margin: 36px 0 14px; }
+    .items-container { gap: 14px; }
     .category-box, .output-box { padding: 18px 14px; min-height: 140px; }
 }
