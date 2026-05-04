@@ -1,0 +1,178 @@
+{
+    "$schema": "https://schemas.kicad.org/erc.v1.json",
+    "coordinate_units": "mm",
+    "date": "2026-05-04T07:06:45+0000",
+    "kicad_version": "9.0.7",
+    "sheets": [
+        {
+            "path": "/",
+            "uuid_path": "/3fca961a-2261-4fb5-99db-779f90a09187",
+            "violations": [
+                {
+                    "description": "The current configuration does not include the footprint library 'FB_Library'.",
+                    "items": [
+                        {
+                            "description": "Symbol J2 [USB_B_Micro]",
+                            "pos": {
+                                "x": 2.7686,
+                                "y": 0.8509
+                            },
+                            "uuid": "a3bd863d-df33-4548-b442-f153c2bbe062"
+                        }
+                    ],
+                    "severity": "warning",
+                    "type": "footprint_link_issues"
+                },
+                {
+                    "description": "The current configuration does not include the footprint library 'Footprint'.",
+                    "items": [
+                        {
+                            "description": "Symbol U8 [MPU6050]",
+                            "pos": {
+                                "x": 3.2766,
+                                "y": 1.7145
+                            },
+                            "uuid": "4c38b207-f698-4ea1-aa82-7c3dc9e5581b"
+                        }
+                    ],
+                    "severity": "warning",
+                    "type": "footprint_link_issues"
+                },
+                {
+                    "description": "The current configuration does not include the symbol library 'MPU'",
+                    "items": [
+                        {
+                            "description": "Symbol U8 [MPU6050]",
+                            "pos": {
+                                "x": 3.2766,
+                                "y": 1.7145
+                            },
+                            "uuid": "4c38b207-f698-4ea1-aa82-7c3dc9e5581b"
+                        }
+                    ],
+                    "severity": "warning",
+                    "type": "lib_symbol_issues"
+                },
+                {
+                    "description": "The current configuration does not include the footprint library 'fp'.",
+                    "items": [
+                        {
+                            "description": "Symbol J6 [Micro_SD_Card_Det1]",
+                            "pos": {
+                                "x": 1.0541,
+                                "y": 1.4986
+                            },
+                            "uuid": "5e67540e-d6f7-4ce7-8938-314ea8c20c09"
+                        }
+                    ],
+                    "severity": "warning",
+                    "type": "footprint_link_issues"
+                },
+                {
+                    "description": "The current configuration does not include the footprint library 'FPC_CONNECTOR24'.",
+                    "items": [
+                        {
+                            "description": "Symbol U3 [_1]",
+                            "pos": {
+                                "x": 2.4765,
+                                "y": 0.6731
+                            },
+                            "uuid": "7d11e0df-9022-4ad6-b09c-814691485c12"
+                        }
+                    ],
+                    "severity": "warning",
+                    "type": "footprint_link_issues"
+                },
+                {
+                    "description": "The current configuration does not include the symbol library 'LCD_Con'",
+                    "items": [
+                        {
+                            "description": "Symbol U3 [_1]",
+                            "pos": {
+                                "x": 2.4765,
+                                "y": 0.6731
+                            },
+                            "uuid": "7d11e0df-9022-4ad6-b09c-814691485c12"
+                        }
+                    ],
+                    "severity": "warning",
+                    "type": "lib_symbol_issues"
+                },
+                {
+                    "description": "The current configuration does not include the footprint library 'model'.",
+                    "items": [
+                        {
+                            "description": "Symbol U6 [STLINK-V3MODS]",
+                            "pos": {
+                                "x": 0.8382,
+                                "y": 0.8382
+                            },
+                            "uuid": "11136df9-5cc2-4300-a180-03bd42fa0d46"
+                        }
+                    ],
+                    "severity": "warning",
+                    "type": "footprint_link_issues"
+                },
+                {
+                    "description": "The current configuration does not include the symbol library 'STLINK-V3MODS'",
+                    "items": [
+                        {
+                            "description": "Symbol U6 [STLINK-V3MODS]",
+                            "pos": {
+                                "x": 0.8382,
+                                "y": 0.8382
+                            },
+                            "uuid": "11136df9-5cc2-4300-a180-03bd42fa0d46"
+                        }
+                    ],
+                    "severity": "warning",
+                    "type": "lib_symbol_issues"
+                },
+                {
+                    "description": "The current configuration does not include the footprint library 'model'.",
+                    "items": [
+                        {
+                            "description": "Symbol U6 [STLINK-V3MODS]",
+                            "pos": {
+                                "x": 1.9177,
+                                "y": 0.9398
+                            },
+                            "uuid": "5787cde8-2f7b-4e57-be33-34923c484646"
+                        }
+                    ],
+                    "severity": "warning",
+                    "type": "footprint_link_issues"
+                },
+                {
+                    "description": "The current configuration does not include the symbol library 'STLINK-V3MODS'",
+                    "items": [
+                        {
+                            "description": "Symbol U6 [STLINK-V3MODS]",
+                            "pos": {
+                                "x": 1.9177,
+                                "y": 0.9398
+                            },
+                            "uuid": "5787cde8-2f7b-4e57-be33-34923c484646"
+                        }
+                    ],
+                    "severity": "warning",
+                    "type": "lib_symbol_issues"
+                }
+            ],
+            "file_name": "Nano-Board-rev-2.kicad_sch"
+        },
+        {
+            "path": "/LCD/",
+            "uuid_path": "/3fca961a-2261-4fb5-99db-779f90a09187/0cec1ac0-f867-4b21-9ca4-ae730a9a7598",
+            "violations": [],
+            "file_name": "LCD.kicad_sch"
+        },
+        {
+            "path": "/stlinkv3/",
+            "uuid_path": "/3fca961a-2261-4fb5-99db-779f90a09187/ec3175dd-d107-4831-b634-ff625f6ded96",
+            "violations": [],
+            "file_name": "stlinkv3.kicad_sch"
+        }
+    ],
+    "source": "Nano-Board-rev-2.kicad_sch"
+}
