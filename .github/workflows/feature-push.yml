@@ -215,20 +215,23 @@ jobs:
           project = os.environ.get("KICAD_PROJECT", "")
           glb_rel = f"../3d/{project}.glb"
           step_rel = f"../3d/{project}.step"
-          # Inject viewer into BOTH the landing page and the 3D page so
-          # opening index.html (which redirects to navigate.html) shows
-          # the rotating board immediately, and the dedicated 3D page
-          # also has it at the top.
-          targets = (
-              list(pathlib.Path("output").rglob("*-navigate.html")) +
-              list(pathlib.Path("output").rglob("*-navigate_3d.html"))
-          )
-          for nav in targets:
-              # Skip the per-section pages (we don't want the viewer on
-              # reports/bom/gerbers/etc.). Only landing + 3D get it.
-              n = nav.name
-              if not (n.endswith("-navigate.html") or n.endswith("-navigate_3d.html")):
-                  continue
+          # Rename the landing-page "3d" category tile to "3D Viewer"
+          # so the entry point is labeled clearly. The tile's link
+          # already targets navigate_3d.html, which on GitHub Pages
+          # serves the live <model-viewer>.
+          for landing in pathlib.Path("output").rglob("*-navigate.html"):
+              t = landing.read_text(encoding="utf-8")
+              t2 = re.sub(
+                  r'(category-title">)3d(</p>)',
+                  r'\g<1>3D Viewer\g<2>',
+                  t, count=1,
+              )
+              if t2 != t:
+                  landing.write_text(t2, encoding="utf-8")
+                  print(f"renamed 3d tile -> 3D Viewer in {landing}")
+
+          # The interactive viewer goes only on the dedicated 3D page.
+          for nav in pathlib.Path("output").rglob("*-navigate_3d.html"):
               s = nav.read_text(encoding="utf-8")
 
               # 1. Add the <model-viewer> ES module + interactive viewer
