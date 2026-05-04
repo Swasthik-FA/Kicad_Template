@@ -16,9 +16,7 @@ name: Deploy HTML to GitHub Pages
 
 on:
   push:
-    # TODO: drop `feature/test-pipeline` once Pages deployment is verified;
-    # leave only main + dev for production.
-    branches: [main, dev, feature/test-pipeline]
+    branches: [main, dev]
     paths:
       - 'HTML/**'
       - '.github/workflows/pages.yml'
