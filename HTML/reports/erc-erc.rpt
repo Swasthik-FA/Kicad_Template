@@ -1,0 +1,46 @@
+ERC report (2026-05-04T05:22:46+0000, Encoding UTF8)
+
+***** Sheet /
+[footprint_link_issues]: The current configuration does not include the footprint library 'FB_Library'.
+    ; warning
+    @(2.7686 mm, 0.8509 mm): Symbol J2 [USB_B_Micro]
+
+[footprint_link_issues]: The current configuration does not include the footprint library 'Footprint'.
+    ; warning
+    @(3.2766 mm, 1.7145 mm): Symbol U8 [MPU6050]
+
+[lib_symbol_issues]: The current configuration does not include the symbol library 'MPU'
+    ; warning
+    @(3.2766 mm, 1.7145 mm): Symbol U8 [MPU6050]
+
+[footprint_link_issues]: The current configuration does not include the footprint library 'fp'.
+    ; warning
+    @(1.0541 mm, 1.4986 mm): Symbol J6 [Micro_SD_Card_Det1]
+
+[footprint_link_issues]: The current configuration does not include the footprint library 'FPC_CONNECTOR24'.
+    ; warning
+    @(2.4765 mm, 0.6731 mm): Symbol U3 [_1]
+
+[lib_symbol_issues]: The current configuration does not include the symbol library 'LCD_Con'
+    ; warning
+    @(2.4765 mm, 0.6731 mm): Symbol U3 [_1]
+
+[footprint_link_issues]: The current configuration does not include the footprint library 'model'.
+    ; warning
+    @(0.8382 mm, 0.8382 mm): Symbol U6 [STLINK-V3MODS]
+
+[lib_symbol_issues]: The current configuration does not include the symbol library 'STLINK-V3MODS'
+    ; warning
+    @(0.8382 mm, 0.8382 mm): Symbol U6 [STLINK-V3MODS]
+
+[footprint_link_issues]: The current configuration does not include the footprint library 'model'.
+    ; warning
+    @(1.9177 mm, 0.9398 mm): Symbol U6 [STLINK-V3MODS]
+
+[lib_symbol_issues]: The current configuration does not include the symbol library 'STLINK-V3MODS'
+    ; warning
+    @(1.9177 mm, 0.9398 mm): Symbol U6 [STLINK-V3MODS]
+
+***** Sheet /LCD/
+***** Sheet /stlinkv3/
+ ** ERC messages: 10  Errors 0  Warnings 10

@@ -1,7 +1,7 @@
 {
     "$schema": "https://schemas.kicad.org/drc.v1.json",
     "coordinate_units": "mm",
-    "date": "2026-05-04T05:19:34+0000",
+    "date": "2026-05-04T05:22:43+0000",
     "kicad_version": "9.0.7",
     "schematic_parity": [
         {
@@ -141,29 +141,6 @@
             "type": "clearance"
         },
         {
-            "description": "Clearance violation (zone clearance 0.5000 mm; actual 0.2204 mm)",
-            "items": [
-                {
-                    "description": "Via [+3V3] on F.Cu - B.Cu",
-                    "pos": {
-                        "x": 98.0375,
-                        "y": 109.507428
-                    },
-                    "uuid": "42eec1db-7403-4318-bdfd-6755b20924e9"
-                },
-                {
-                    "description": "Zone [GND] on F.Cu and B.Cu, priority 0",
-                    "pos": {
-                        "x": 59.992,
-                        "y": 72.07
-                    },
-                    "uuid": "dd969988-5c53-4ba1-b98c-8270c07fdfb0"
-                }
-            ],
-            "severity": "error",
-            "type": "clearance"
-        },
-        {
             "description": "Clearance violation (zone clearance 0.5000 mm; actual 0.3612 mm)",
             "items": [
                 {
@@ -187,15 +164,15 @@
             "type": "clearance"
         },
         {
-            "description": "Clearance violation (zone clearance 0.5000 mm; actual 0.4204 mm)",
+            "description": "Clearance violation (zone clearance 0.5000 mm; actual 0.3308 mm)",
             "items": [
                 {
-                    "description": "Track [+3V3] on B.Cu, length 0.1701 mm",
+                    "description": "Track [SWO] on B.Cu, length 10.6066 mm",
                     "pos": {
-                        "x": 98.0375,
-                        "y": 109.507428
+                        "x": 93.1,
+                        "y": 113.27
                     },
-                    "uuid": "edbb3019-dd5b-4cd3-af70-7280a7d510b0"
+                    "uuid": "4d3608d1-921a-49de-b551-493e2a71e56e"
                 },
                 {
                     "description": "Zone [GND] on F.Cu and B.Cu, priority 0",
@@ -210,15 +187,38 @@
             "type": "clearance"
         },
         {
-            "description": "Clearance violation (zone clearance 0.5000 mm; actual 0.3308 mm)",
+            "description": "Clearance violation (zone clearance 0.5000 mm; actual 0.2204 mm)",
             "items": [
                 {
-                    "description": "Track [SWO] on B.Cu, length 10.6066 mm",
+                    "description": "Via [+3V3] on F.Cu - B.Cu",
                     "pos": {
-                        "x": 93.1,
-                        "y": 113.27
+                        "x": 98.0375,
+                        "y": 109.507428
                     },
-                    "uuid": "4d3608d1-921a-49de-b551-493e2a71e56e"
+                    "uuid": "42eec1db-7403-4318-bdfd-6755b20924e9"
+                },
+                {
+                    "description": "Zone [GND] on F.Cu and B.Cu, priority 0",
+                    "pos": {
+                        "x": 59.992,
+                        "y": 72.07
+                    },
+                    "uuid": "dd969988-5c53-4ba1-b98c-8270c07fdfb0"
+                }
+            ],
+            "severity": "error",
+            "type": "clearance"
+        },
+        {
+            "description": "Clearance violation (zone clearance 0.5000 mm; actual 0.4204 mm)",
+            "items": [
+                {
+                    "description": "Track [+3V3] on B.Cu, length 0.1701 mm",
+                    "pos": {
+                        "x": 98.0375,
+                        "y": 109.507428
+                    },
+                    "uuid": "edbb3019-dd5b-4cd3-af70-7280a7d510b0"
                 },
                 {
                     "description": "Zone [GND] on F.Cu and B.Cu, priority 0",
