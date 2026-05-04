@@ -169,19 +169,28 @@ jobs:
         run: |
           set +e
           # The navigate_results page links to erc-erc.{html,rpt,json} and
-          # drc-drc.{html,rpt,json}. KiBot's preflights don't reliably emit
-          # those filenames in this image, so create aliases from the
-          # kicad-cli outputs + the styled error-report.html.
-          if [ -d output/reports ]; then
-            for stem in erc drc; do
-              for ext in rpt json; do
-                src="output/reports/${stem}.${ext}"
-                dst="output/reports/${stem}-${stem}.${ext}"
-                [ -f "$src" ] && [ ! -f "$dst" ] && cp -f "$src" "$dst"
-              done
-              [ -f output/error-report.html ] && cp -f output/error-report.html "output/reports/${stem}-${stem}.html"
+          # drc-drc.{html,rpt,json}. Build per-kind pages (ERC-only and
+          # DRC-only) by invoking generate_error_report.py twice, once with
+          # just the ERC inputs and once with just the DRC inputs. Also
+          # alias the .rpt / .json so navigate's download links resolve.
+          mkdir -p output/reports
+          for stem in erc drc; do
+            for ext in rpt json; do
+              src="output/reports/${stem}.${ext}"
+              dst="output/reports/${stem}-${stem}.${ext}"
+              if [ -f "$src" ]; then cp -f "$src" "$dst"; fi
             done
-          fi
+          done
+          # ERC-only page
+          python3 config/generate_error_report.py \
+            --erc-json output/reports/erc.json \
+            --erc-rpt  output/reports/erc.rpt \
+            --output   output/reports/erc-erc.html || true
+          # DRC-only page
+          python3 config/generate_error_report.py \
+            --drc-json output/reports/drc.json \
+            --drc-rpt  output/reports/drc.rpt \
+            --output   output/reports/drc-drc.html || true
 
           # Mirror the entire KiBot output tree under HTML/ so the
           # navigate_results webpage's relative links (../3d/, ../reports/,
