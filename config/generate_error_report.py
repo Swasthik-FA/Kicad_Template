@@ -334,6 +334,28 @@ code {
 .image-block { background: #fff; padding: 12px; border-radius: 8px;
   box-shadow: 0 1px 2px rgba(0,0,0,.05); margin-top: 12px; }
 .image-block img { max-width: 100%; height: auto; display: block; }
+.downloads {
+  background: #fff; padding: 14px 18px; border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.05); margin-bottom: 24px;
+}
+.downloads h3 { margin: 0 0 10px; font-size: 13px; color: #374151;
+  text-transform: uppercase; letter-spacing: .6px; }
+.download-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.download-link {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 14px; border-radius: 6px;
+  background: #EEF2FF; color: #1E40AF;
+  text-decoration: none; font-size: 13px; font-weight: 600;
+  border: 1px solid #C7D2FE;
+  transition: background .12s ease;
+}
+.download-link:hover { background: #E0E7FF; }
+.download-link .dl-kind {
+  background: #1E40AF; color: #fff; font-size: 10px;
+  padding: 2px 6px; border-radius: 4px; letter-spacing: .5px;
+}
+.download-link .dl-name { font-family: ui-monospace, SFMono-Regular,
+  Menlo, monospace; font-weight: 500; }
 @media print {
   body { background: #fff; }
   header.banner { background: #fff; color: #111; border-bottom: 2px solid #DC2626; }
@@ -465,9 +487,41 @@ def _card(label: str, value: int, kind: str) -> str:
             f'<div class="value">{value}</div></div>')
 
 
+def _downloads_block(rpt: Path | None, json_path: Path | None,
+                     output_dir: Path, label: str) -> str:
+    """Build a small download-card row for the .rpt and .json files of a
+    single kind. Links are emitted as basenames relative to the output
+    HTML so they resolve when both files sit in the same directory."""
+    parts = []
+    for p, kind in ((rpt, "RPT"), (json_path, "JSON")):
+        if p and p.exists():
+            try:
+                rel = os.path.relpath(p.resolve(), output_dir.resolve())
+            except ValueError:
+                rel = p.name
+            rel = rel.replace(os.sep, "/")
+            parts.append(
+                f'<a class="download-link" href="{html.escape(rel)}" download>'
+                f'<span class="dl-kind">{html.escape(kind)}</span>'
+                f'<span class="dl-name">{html.escape(p.name)}</span>'
+                f'</a>'
+            )
+    if not parts:
+        return ""
+    return (
+        f'<section class="downloads">'
+        f'<h3>Download {html.escape(label)} report</h3>'
+        f'<div class="download-row">{"".join(parts)}</div>'
+        f'</section>'
+    )
+
+
 def render_html(erc: list[Violation], drc: list[Violation],
                 pcb_image: Path | None,
-                show_erc: bool = True, show_drc: bool = True) -> str:
+                show_erc: bool = True, show_drc: bool = True,
+                erc_rpt: Path | None = None, erc_json: Path | None = None,
+                drc_rpt: Path | None = None, drc_json: Path | None = None,
+                output_path: Path | None = None) -> str:
     repo = os.environ.get("GITHUB_REPOSITORY", "")
     branch = os.environ.get("GITHUB_REF_NAME", "")
     sha = os.environ.get("GITHUB_SHA", "")
@@ -526,6 +580,14 @@ def render_html(erc: list[Violation], drc: list[Violation],
                      if failed else f"&#10003; {kinds} passed")
 
     title_kind = kinds
+
+    out_dir = (output_path.parent if output_path else Path("."))
+    downloads_html = ""
+    if show_erc:
+        downloads_html += _downloads_block(erc_rpt, erc_json, out_dir, "ERC")
+    if show_drc:
+        downloads_html += _downloads_block(drc_rpt, drc_json, out_dir, "DRC")
+
     sections_html = ""
     if show_erc:
         sections_html += _section("ERC violations", "erc-table", erc)
@@ -553,6 +615,8 @@ def render_html(erc: list[Violation], drc: list[Violation],
   </div>
 
   {image_block}
+
+  {downloads_html}
 
   {sections_html}
 
@@ -613,7 +677,10 @@ def main() -> int:
         drc = _parse_rpt(args.drc_rpt, "DRC")
 
     html_doc = render_html(erc, drc, args.pcb_image,
-                           show_erc=erc_requested, show_drc=drc_requested)
+                           show_erc=erc_requested, show_drc=drc_requested,
+                           erc_rpt=args.erc_rpt, erc_json=args.erc_json,
+                           drc_rpt=args.drc_rpt, drc_json=args.drc_json,
+                           output_path=args.output)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(html_doc, encoding="utf-8")
 

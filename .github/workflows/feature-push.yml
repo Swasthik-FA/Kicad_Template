@@ -165,6 +165,24 @@ jobs:
             --drc-rpt  output/reports/drc-drc.rpt \
             --output   output/reports/drc-drc.html || true
 
+          # Strip the .rpt and .json tiles from KiBot's navigate_reports.html
+          # so the navigate page only links to the HTML reports. The .rpt /
+          # .json files still ship in HTML/reports/ and are linked as
+          # downloads from inside erc-erc.html and drc-drc.html.
+          python3 - <<'PY' || true
+          import re, pathlib
+          for nav in pathlib.Path("output").rglob("*-navigate_reports.html"):
+              s = nav.read_text(encoding="utf-8")
+              new = re.sub(
+                  r'\s*<div class="output-box[^"]*"\s+onclick="[^"]*\.(?:rpt|json)\'"[^>]*>[\s\S]*?</div>',
+                  "",
+                  s,
+              )
+              if new != s:
+                  nav.write_text(new, encoding="utf-8")
+                  print(f"stripped rpt/json tiles from {nav}")
+          PY
+
           # Mirror the entire KiBot output tree under HTML/ so the
           # navigate_results webpage's relative links (../3d/, ../reports/,
           # ../schematic/, ../ibom/, …) resolve correctly when browsed
