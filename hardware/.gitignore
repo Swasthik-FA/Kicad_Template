@@ -1,0 +1,22 @@
+drc_report.txt
+erc_report.txt
+netlist.net
+freerouting.dsn
+temp-freerouting.dsn
+
+# KiCad auto-backups
+Nano-Board-rev-2-backups/
+production/backups/
+
+# Manufacturing bundle zips (loose gerbers/drills are tracked instead)
+production.zip
+production/*.zip
+
+# KiCad autosave / lock files
+_autosave-*
+~*.lck
+*.lck
+#auto_saved_files#
+
+# Local tooling
+.claude/

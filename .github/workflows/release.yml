@@ -1,11 +1,10 @@
 # ============================================================================
-# Stage 5 — Release  (tag-triggered manufacturing package)
+# Stage 5 — Release (tag-triggered)
 # ----------------------------------------------------------------------------
-# Trigger:  push of a tag matching `v*` on any branch (in practice, `main`).
-# Purpose:  build the full manufacturing package, ZIP it as
+# Trigger:  push of a tag matching `v*` (e.g., v1.0.0). Created on `main`.
+# Action:   build the full output package, ZIP everything as
 #             <project>-<tag>-manufacturing.zip
-#           and create a GitHub Release with auto-generated notes and the
-#           ZIP attached.
+#           and create a GitHub Release with auto-generated notes + the ZIP.
 # ============================================================================
 name: Release — manufacturing package
 
@@ -20,6 +19,8 @@ permissions:
 env:
   KICAD_PROJECT_DIR: hardware
   KICAD_PROJECT: Nano-Board-rev-2
+  KIBOT_CONFIG: config/kibot/kibot_main.yaml
+  KIBOT_LOG: kibot_run.log
 
 jobs:
   release:
@@ -27,22 +28,33 @@ jobs:
     runs-on: ubuntu-latest
 
     container:
-      image: ghcr.io/inti-cmnb/kicad8_auto_full:latest
+      image: ghcr.io/inti-cmnb/kicad_auto:ki9
       options: --user root
+
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Run KiBot (full preset)
+      # No ERC/DRC gate at release time — assumed already passed on main.
+      # If you want a final safety net, copy the ERC/DRC steps from
+      # pr-to-main.yml into this job.
+
+      - name: KiBot — full group
         run: |
-          set -eu
+          set +e
           mkdir -p output
           kibot \
-            -c config/kibot-full.yaml \
+            -c "${KIBOT_CONFIG}" \
             -d output \
             -e "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_sch" \
-            -b "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb"
+            -b "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb" \
+            --skip-pre erc,drc \
+            --log "${KIBOT_LOG}" \
+            full
 
       - name: Build manufacturing ZIP
         id: zip
@@ -50,24 +62,24 @@ jobs:
           set -eu
           TAG="${GITHUB_REF_NAME}"
           ZIP_NAME="${KICAD_PROJECT}-${TAG}-manufacturing.zip"
+          # Stage everything under a clean tree, then zip it.
           STAGE="release-stage"
           rm -rf "${STAGE}" && mkdir -p "${STAGE}"
-          # Copy the production artifacts into a clean tree.
-          cp -r output/manufacturing/. "${STAGE}/"
-          cp -r output/bom            "${STAGE}/bom"
-          cp -r output/visual         "${STAGE}/visual"
+          cp -r output/. "${STAGE}/"
           ( cd "${STAGE}" && zip -r "../${ZIP_NAME}" . )
+          ls -la "${ZIP_NAME}"
           echo "zip_path=${ZIP_NAME}" >> "${GITHUB_OUTPUT}"
           echo "zip_name=${ZIP_NAME}" >> "${GITHUB_OUTPUT}"
 
       - name: Upload release ZIP as workflow artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.zip.outputs.zip_name }}
           path: ${{ steps.zip.outputs.zip_path }}
           retention-days: 90
 
-      - name: Create GitHub Release with auto-generated notes
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           name: ${{ github.ref_name }}

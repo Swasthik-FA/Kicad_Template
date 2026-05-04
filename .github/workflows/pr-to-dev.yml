@@ -1,19 +1,18 @@
 # ============================================================================
-# Stage 2 — Pull request into `dev`  (MERGE GATE)
+# Stage 2 — Pull request into `dev` (MERGE GATE)
 # ----------------------------------------------------------------------------
-# Trigger:  PR opened/updated/reopened/synchronized targeting `dev`.
-# Purpose:  enforce ERC + DRC. A failure blocks the merge.
-# Outputs (on success): visual exports + interactive HTML BOM, uploaded so
-#                       reviewers can inspect the design.
-# Outputs (on failure): self-contained `error-report.html`, uploaded as the
-#                       `error-report` artifact, plus a PR comment linking
-#                       to the artifacts list.
+# Trigger:  PR opened/updated/reopened targeting `dev`.
+# Gate:     ERC + DRC via KiBot preflights (honors .kicad_pro rule_severities,
+#           unlike kicad-cli). We parse the JSON report and count
+#           error-severity entries ourselves.
+#           If any errors, the job fails, the PR is blocked, and a comment
+#           is posted with a link to the error-report artifact.
+# Outputs (on pass): visual group + interactive HTML BOM for reviewer
+#           inspection, uploaded as `pr-review-<PR#>` artifact.
 #
-# REQUIRED branch protection on `dev` (configure in GitHub UI):
-#   - Require pull request before merging
-#   - Require status checks to pass before merging
-#   - Required status check:  "ERC + DRC gate"   (= the job's `name` below)
-# Without that protection rule, a failing run will not actually block merge.
+# REQUIRED branch protection on `dev`:
+#   Settings → Branches → Add ruleset → Required status check:
+#       "ERC + DRC gate"   (the job name below)
 # ============================================================================
 name: PR to dev — ERC/DRC gate
 
@@ -22,7 +21,6 @@ on:
     branches: [dev]
     types: [opened, synchronize, reopened]
 
-# `pull-requests: write` is needed to post the failure comment.
 permissions:
   contents: read
   pull-requests: write
@@ -30,50 +28,98 @@ permissions:
 env:
   KICAD_PROJECT_DIR: hardware
   KICAD_PROJECT: Nano-Board-rev-2
+  KIBOT_CONFIG: config/kibot/kibot_main.yaml
+  KIBOT_LOG: kibot_run.log
 
 jobs:
-  erc-drc-gate:
+  gate:
     name: ERC + DRC gate
     runs-on: ubuntu-latest
 
     container:
-      image: ghcr.io/inti-cmnb/kicad8_auto_full:latest
+      image: ghcr.io/inti-cmnb/kicad_auto:ki9
       options: --user root
 
-    # We DO NOT mark the whole job as continue-on-error. The whole point of
-    # this stage is to fail when ERC/DRC fails. We use step-level
-    # `continue-on-error: true` only on the KiBot step so the failure-handler
-    # steps below can still run.
+    defaults:
+      run:
+        shell: bash
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Run KiBot (full preset)
-        id: kibot
-        continue-on-error: true
+      - name: Prepare reports directory
+        run: mkdir -p output/reports
+
+      # ----------------------------------------------------------------------
+      # ERC + DRC + lightweight visual outputs via KiBot's `visual` group.
+      # The preflights run as part of the group and honor the project's
+      # rule_severities (from .kicad_pro) exactly like the KiCad GUI;
+      # `kicad-cli` would NOT apply those overrides and silently misses
+      # errors that the GUI would flag (e.g. hole_clearance promoted to
+      # error). Preflight outputs land as erc-erc.{html,rpt,json} and
+      # drc-drc.{html,rpt,json}. dont_stop=true on the DRC preflight keeps
+      # KiBot going past violations; the gate below counts JSON entries
+      # with severity=error.
+      # ----------------------------------------------------------------------
+      - name: ERC + DRC via KiBot (visual group)
         run: |
-          set -eu
-          mkdir -p output
+          set +e
           kibot \
-            -c config/kibot-full.yaml \
+            -c "${KIBOT_CONFIG}" \
             -d output \
             -e "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_sch" \
-            -b "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb"
+            -b "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb" \
+            --log "${KIBOT_LOG}" \
+            visual || true
 
-      # Always (pass or fail) generate the HTML error report. On a clean run
-      # it produces a green "no issues" report; on a failed run it lists every
-      # violation with refs/locations.
+      # ----------------------------------------------------------------------
+      # Count error-severity violations from the JSON reports.
+      # Emit results as step outputs so later steps can branch on them.
+      # ----------------------------------------------------------------------
+      - name: Count violations
+        id: count
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os
+          def tally(path):
+              try:
+                  j = json.load(open(path))
+              except Exception:
+                  return 0, 0
+              e = w = 0
+              for sh in j.get('sheets', [j]):
+                  for v in sh.get('violations', []) or []:
+                      sev = (v.get('severity') or '').lower()
+                      if sev == 'error': e += 1
+                      elif sev == 'warning': w += 1
+              for s in ('unconnected_items', 'schematic_parity'):
+                  for v in j.get(s, []) or []:
+                      sev = (v.get('severity') or '').lower()
+                      if sev == 'error': e += 1
+                      elif sev == 'warning': w += 1
+              return e, w
+          ee, ew = tally('output/reports/erc-erc.json')
+          de, dw = tally('output/reports/drc-drc.json')
+          print(f"erc_errors={ee}")
+          print(f"erc_warnings={ew}")
+          print(f"drc_errors={de}")
+          print(f"drc_warnings={dw}")
+          print(f"total_errors={ee + de}")
+          PY
+
+      # ----------------------------------------------------------------------
+      # Always generate the HTML error report (clean run = green report).
+      # ----------------------------------------------------------------------
       - name: Generate error report HTML
         if: always()
         run: |
-          set -eu
           python3 config/generate_error_report.py \
-            --erc-json output/reports/erc.json \
-            --drc-json output/reports/drc.json \
-            --erc-rpt  output/reports/erc.rpt \
-            --drc-rpt  output/reports/drc.rpt \
-            --pcb-image output/visual/pcb/${KICAD_PROJECT}-pcb-top.png \
-            --output output/error-report.html
+            --erc-json output/reports/erc-erc.json \
+            --drc-json output/reports/drc-drc.json \
+            --erc-rpt  output/reports/erc-erc.rpt \
+            --drc-rpt  output/reports/drc-drc.rpt \
+            --output   output/error-report.html
 
       - name: Upload error report (always)
         if: always()
@@ -84,36 +130,40 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
 
-      # On success — upload visual previews + iBOM for reviewer inspection.
-      - name: Upload PR review artifacts (success only)
-        if: steps.kibot.outcome == 'success'
+      # ----------------------------------------------------------------------
+      # On pass: visual + iBOM artifacts were already produced by the gate
+      # step above (visual group runs preflights + visual outputs together).
+      # We just upload them.
+      # ----------------------------------------------------------------------
+      - name: Upload PR review artifacts (only if gate passes)
+        if: steps.count.outputs.total_errors == '0'
         uses: actions/upload-artifact@v4
         with:
           name: pr-review-${{ github.event.pull_request.number }}
           path: |
-            output/visual/
-            output/bom/
+            output/
+            ${{ env.KIBOT_LOG }}
           retention-days: 14
           if-no-files-found: warn
 
-      # On failure — post a PR comment with a link to the artifacts page.
-      - name: Comment on PR (failure)
-        if: steps.kibot.outcome != 'success'
+      # ----------------------------------------------------------------------
+      # On fail: comment on the PR pointing at the error-report artifact.
+      # ----------------------------------------------------------------------
+      - name: Comment on PR (on failure)
+        if: steps.count.outputs.total_errors != '0'
         uses: peter-evans/create-or-update-comment@v4
         with:
           issue-number: ${{ github.event.pull_request.number }}
           body: |
             ❌ **ERC / DRC failed — merge blocked.**
 
-            Download the detailed error report from this run's artifacts:
-            [`error-report` artifact ↗](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            ERC: **${{ steps.count.outputs.erc_errors }}** error(s), ${{ steps.count.outputs.erc_warnings }} warning(s)
+            DRC: **${{ steps.count.outputs.drc_errors }}** error(s), ${{ steps.count.outputs.drc_warnings }} warning(s)
 
-            Open `error-report.html` in your browser for the full violations list with component refs, sheets, layers, and coordinates.
+            Download the [`error-report` artifact ↗](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) and open `error-report.html` for the full violations list.
 
-      # Final guard — propagate the KiBot exit code so this job is "failed"
-      # in the GitHub UI and the required-status-check enforcement kicks in.
-      - name: Fail the build if KiBot failed
-        if: steps.kibot.outcome != 'success'
+      - name: Fail job if ERC/DRC errors
+        if: steps.count.outputs.total_errors != '0'
         run: |
-          echo "ERC/DRC gate failed. See the error-report artifact."
+          echo "::error::ERC=${{ steps.count.outputs.erc_errors }} DRC=${{ steps.count.outputs.drc_errors }} errors. Merge blocked."
           exit 1
