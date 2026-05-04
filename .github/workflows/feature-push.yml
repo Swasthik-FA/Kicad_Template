@@ -69,6 +69,24 @@ jobs:
             full
 
       # ----------------------------------------------------------------------
+      # Build a browser-ready GLB so the navigate_3d page can show the
+      # board interactively via <model-viewer>. The conversion script is
+      # a thin wrapper around `kicad-cli pcb export glb`. Output lands at
+      # HTML/3d/<project>.glb but we mirror it under output/3d/ first so
+      # the publish step's `cp -rf output/. HTML/` picks it up alongside
+      # everything else.
+      # ----------------------------------------------------------------------
+      - name: Convert PCB to GLB for in-browser 3D viewer
+        continue-on-error: true
+        run: |
+          set +e
+          mkdir -p output/3d
+          python3 scripts/convert_to_glb.py \
+            --pcb "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb" \
+            --output "output/3d/${KICAD_PROJECT}.glb" || true
+          ls -la output/3d/ || true
+
+      # ----------------------------------------------------------------------
       # Count violations — purely informational. Drives a friendly summary,
       # NOT a merge gate. The job never exits non-zero based on this.
       # ----------------------------------------------------------------------
@@ -183,16 +201,74 @@ jobs:
                   print(f"stripped rpt/json tiles from {nav}")
           PY
 
-          # Replace the auto-generated .step tile in the 3D navigate page
-          # with a clean "Download STEP" button (uses the `download`
-          # attribute so the browser always saves the file instead of
-          # opening it).
+          # Inject an interactive <model-viewer> at the top of the 3D
+          # navigate page (loads ../3d/<project>.glb, full responsive,
+          # rotate + zoom + pan), and replace the auto-generated .step
+          # tile with a "Download STEP" button.
+          #
+          # The <model-viewer> web component is loaded as an ES module
+          # from jsDelivr. ES modules require the page to be served
+          # over HTTP(S) — this works on GitHub Pages (or any web
+          # server) but NOT when opening the HTML file from disk.
           python3 - <<'PY' || true
           import os, pathlib, re
           project = os.environ.get("KICAD_PROJECT", "")
+          glb_rel = f"../3d/{project}.glb"
           step_rel = f"../3d/{project}.step"
           for nav in pathlib.Path("output").rglob("*-navigate_3d.html"):
               s = nav.read_text(encoding="utf-8")
+
+              # 1. Add the <model-viewer> ES module + interactive viewer
+              # block at the top of the 3D section. Idempotent.
+              if "model-viewer" not in s:
+                  script_tag = (
+                      '<script type="module" '
+                      'src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4.0.0/'
+                      'dist/model-viewer.min.js"></script>\n'
+                  )
+                  if "</head>" in s:
+                      s = s.replace("</head>", script_tag + "</head>", 1)
+                  viewer_block = (
+                      '<div class="output-virtual-box" id="live_3d">\n'
+                      '<div class="output-comment">3D Viewer</div>\n'
+                      '<div class="items-container" '
+                      'style="grid-template-columns: 1fr;">\n'
+                      '<model-viewer '
+                      f'src="{glb_rel}" alt="Interactive 3D PCB model" '
+                      'camera-controls touch-action="pan-y" '
+                      'shadow-intensity="1" exposure="1.1" '
+                      'environment-image="neutral" '
+                      'interaction-prompt="auto" '
+                      'style="width:100%; height:clamp(360px, 70vh, 720px); '
+                      'background:linear-gradient(135deg,#0B0F19,#161C2D); '
+                      'border-radius:16px; display:block; grid-column: 1 / -1;">'
+                      '<div slot="poster" '
+                      'style="display:flex;flex-direction:column;align-items:center;'
+                      'justify-content:center;height:100%;color:#94A0B8;'
+                      'font-family:Inter,sans-serif;text-align:center;padding:24px;'
+                      'background:linear-gradient(135deg,#0B0F19,#161C2D);'
+                      'border-radius:16px;">'
+                      '<div style="font-size:16px;font-weight:600;color:#E6E9F2;'
+                      'margin-bottom:8px;">3D Viewer</div>'
+                      '<div style="font-size:13px;line-height:1.6;max-width:520px;">'
+                      'Loading the PCB model… If this stays, the page is being '
+                      'served over <code style="background:#1B2235;padding:2px 6px;'
+                      'border-radius:4px;font-family:ui-monospace,Menlo,monospace;">'
+                      'file://</code>; open it via GitHub Pages or run '
+                      '<code style="background:#1B2235;padding:2px 6px;'
+                      'border-radius:4px;font-family:ui-monospace,Menlo,monospace;">'
+                      'python -m http.server</code> from the repo root.'
+                      '</div>'
+                      '</div>'
+                      '</model-viewer>\n'
+                      '</div>\n'
+                      '</div>\n'
+                  )
+                  s = s.replace('<div id="main">',
+                                '<div id="main">\n' + viewer_block, 1)
+
+              # 2. Replace the auto-generated .step tile with a clean
+              # "Download STEP" button.
               step_block_re = re.compile(
                   r'<div class="output-virtual-box" id="step">[\s\S]*?</div>\s*</div>',
                   re.M,
