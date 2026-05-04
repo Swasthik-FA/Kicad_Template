@@ -47,23 +47,23 @@ jobs:
         run: mkdir -p output/reports
 
       # ----------------------------------------------------------------------
-      # ERC + DRC — run for visibility, NEVER fail the workflow on the result.
-      # `|| true` forces a zero exit regardless of violations. JSON + RPT
-      # reports land in output/reports/ and end up in the artifact.
+      # ERC + DRC — run via KiBot preflights so the project's rule_severities
+      # (from .kicad_pro) are honored exactly like the KiCad GUI. `kicad-cli`
+      # would NOT apply those overrides and silently misses errors. Outputs
+      # land in output/reports/ as erc-erc.{html,rpt,json} and
+      # drc-drc.{html,rpt,json}. `|| true` forces a zero exit so feature
+      # pushes never block.
       # ----------------------------------------------------------------------
-      - name: ERC via kicad-cli (informational)
+      - name: ERC + DRC via KiBot preflight (informational)
         run: |
           set +e
-          SCH="${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_sch"
-          kicad-cli sch erc --format json -o output/reports/erc.json "${SCH}" || true
-          kicad-cli sch erc                -o output/reports/erc.rpt  "${SCH}" || true
-
-      - name: DRC via kicad-cli (informational)
-        run: |
-          set +e
-          PCB="${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb"
-          kicad-cli pcb drc --format json --schematic-parity -o output/reports/drc.json "${PCB}" || true
-          kicad-cli pcb drc                --schematic-parity -o output/reports/drc.rpt  "${PCB}" || true
+          kibot \
+            -c "${KIBOT_CONFIG}" \
+            -d output \
+            -e "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_sch" \
+            -b "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb" \
+            --log "${KIBOT_LOG}" \
+            --only-pre || true
 
       # ----------------------------------------------------------------------
       # Count violations — purely informational. Drives a friendly summary,
@@ -88,8 +88,8 @@ jobs:
                       s=(v.get('severity') or '').lower()
                       e += s=='error'; w += s=='warning'
               return e,w
-          ee,ew = tally('output/reports/erc.json')
-          de,dw = tally('output/reports/drc.json')
+          ee,ew = tally('output/reports/erc-erc.json')
+          de,dw = tally('output/reports/drc-drc.json')
           print(f"erc_errors={ee}")
           print(f"erc_warnings={ew}")
           print(f"drc_errors={de}")
@@ -101,19 +101,19 @@ jobs:
         continue-on-error: true
         run: |
           python3 config/generate_error_report.py \
-            --erc-json output/reports/erc.json \
-            --drc-json output/reports/drc.json \
-            --erc-rpt  output/reports/erc.rpt \
-            --drc-rpt  output/reports/drc.rpt \
+            --erc-json output/reports/erc-erc.json \
+            --drc-json output/reports/drc-drc.json \
+            --erc-rpt  output/reports/erc-erc.rpt \
+            --drc-rpt  output/reports/drc-drc.rpt \
             --output   output/error-report.html || true
 
       # ----------------------------------------------------------------------
-      # Visual outputs (KiBot — visual group). --skip-pre is harmless here
-      # because we already produced the ERC/DRC artifacts ourselves above.
+      # Visual outputs (KiBot — full group). --skip-pre erc,drc skips the
+      # preflights we already ran above so they aren't repeated.
       # `continue-on-error: true` keeps the workflow green even if a render
       # hiccups.
       # ----------------------------------------------------------------------
-      - name: KiBot — visual group
+      - name: KiBot — full group
         id: kibot
         continue-on-error: true
         run: |
@@ -127,6 +127,7 @@ jobs:
             -d output \
             -e "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_sch" \
             -b "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb" \
+            --skip-pre erc,drc \
             --log "${KIBOT_LOG}" \
             full
 
@@ -169,27 +170,19 @@ jobs:
         run: |
           set +e
           # The navigate_results page links to erc-erc.{html,rpt,json} and
-          # drc-drc.{html,rpt,json}. Build per-kind pages (ERC-only and
-          # DRC-only) by invoking generate_error_report.py twice, once with
-          # just the ERC inputs and once with just the DRC inputs. Also
-          # alias the .rpt / .json so navigate's download links resolve.
+          # drc-drc.{html,rpt,json}. KiBot's preflight already wrote the
+          # .rpt/.json with those exact names, so we just regenerate the
+          # custom-styled HTML pages on top.
           mkdir -p output/reports
-          for stem in erc drc; do
-            for ext in rpt json; do
-              src="output/reports/${stem}.${ext}"
-              dst="output/reports/${stem}-${stem}.${ext}"
-              if [ -f "$src" ]; then cp -f "$src" "$dst"; fi
-            done
-          done
           # ERC-only page
           python3 config/generate_error_report.py \
-            --erc-json output/reports/erc.json \
-            --erc-rpt  output/reports/erc.rpt \
+            --erc-json output/reports/erc-erc.json \
+            --erc-rpt  output/reports/erc-erc.rpt \
             --output   output/reports/erc-erc.html || true
           # DRC-only page
           python3 config/generate_error_report.py \
-            --drc-json output/reports/drc.json \
-            --drc-rpt  output/reports/drc.rpt \
+            --drc-json output/reports/drc-drc.json \
+            --drc-rpt  output/reports/drc-drc.rpt \
             --output   output/reports/drc-drc.html || true
 
           # Mirror the entire KiBot output tree under HTML/ so the

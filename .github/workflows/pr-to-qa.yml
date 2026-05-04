@@ -44,19 +44,19 @@ jobs:
       - name: Prepare reports directory
         run: mkdir -p output/reports
 
-      - name: ERC via kicad-cli
+      # ERC + DRC via KiBot preflights — honors .kicad_pro rule_severities
+      # (kicad-cli does not, so it silently misses errors the GUI would flag).
+      # KiBot writes erc-erc.{html,rpt,json} and drc-drc.{html,rpt,json}.
+      - name: ERC + DRC via KiBot preflight
         run: |
           set +e
-          SCH="${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_sch"
-          kicad-cli sch erc -f json -o output/reports/erc.json "${SCH}"
-          kicad-cli sch erc        -o output/reports/erc.rpt  "${SCH}" || true
-
-      - name: DRC via kicad-cli
-        run: |
-          set +e
-          PCB="${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb"
-          kicad-cli pcb drc -f json --schematic-parity -o output/reports/drc.json "${PCB}"
-          kicad-cli pcb drc        --schematic-parity -o output/reports/drc.rpt  "${PCB}" || true
+          kibot \
+            -c "${KIBOT_CONFIG}" \
+            -d output \
+            -e "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_sch" \
+            -b "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb" \
+            --log "${KIBOT_LOG}" \
+            --only-pre || true
 
       - name: Count violations
         id: count
@@ -76,8 +76,8 @@ jobs:
                       s=(v.get('severity') or '').lower()
                       e += s=='error'; w += s=='warning'
               return e,w
-          ee,ew = tally('output/reports/erc.json')
-          de,dw = tally('output/reports/drc.json')
+          ee,ew = tally('output/reports/erc-erc.json')
+          de,dw = tally('output/reports/drc-drc.json')
           print(f"erc_errors={ee}")
           print(f"erc_warnings={ew}")
           print(f"drc_errors={de}")
@@ -89,10 +89,10 @@ jobs:
         if: always()
         run: |
           python3 config/generate_error_report.py \
-            --erc-json output/reports/erc.json \
-            --drc-json output/reports/drc.json \
-            --erc-rpt  output/reports/erc.rpt \
-            --drc-rpt  output/reports/drc.rpt \
+            --erc-json output/reports/erc-erc.json \
+            --drc-json output/reports/drc-drc.json \
+            --erc-rpt  output/reports/erc-erc.rpt \
+            --drc-rpt  output/reports/drc-drc.rpt \
             --output   output/error-report.html
 
       - name: Upload error report (always)
