@@ -1,5 +1,5 @@
 ** Drc report for Nano-Board-rev-2.kicad_pcb **
-** Created on 2026-05-02T12:23:13+0000 **
+** Created on 2026-05-04T05:02:19+0000 **
 
 ** Found 67 DRC violations **
 [clearance]: Clearance violation (zone clearance 0.5000 mm; actual 0.4192 mm)
@@ -18,13 +18,13 @@
     Local override; error
     @(86.5215 mm, 115.8735 mm): Track [MPU_INT] on B.Cu, length 4.1789 mm
     @(59.9920 mm, 72.0700 mm): Zone [GND] on F.Cu and B.Cu, priority 0
-[clearance]: Clearance violation (zone clearance 0.5000 mm; actual 0.3308 mm)
-    Local override; error
-    @(93.1000 mm, 113.2700 mm): Track [SWO] on B.Cu, length 10.6066 mm
-    @(59.9920 mm, 72.0700 mm): Zone [GND] on F.Cu and B.Cu, priority 0
 [clearance]: Clearance violation (zone clearance 0.5000 mm; actual 0.2204 mm)
     Local override; error
     @(98.0375 mm, 109.5074 mm): Via [+3V3] on F.Cu - B.Cu
+    @(59.9920 mm, 72.0700 mm): Zone [GND] on F.Cu and B.Cu, priority 0
+[clearance]: Clearance violation (zone clearance 0.5000 mm; actual 0.3308 mm)
+    Local override; error
+    @(93.1000 mm, 113.2700 mm): Track [SWO] on B.Cu, length 10.6066 mm
     @(59.9920 mm, 72.0700 mm): Zone [GND] on F.Cu and B.Cu, priority 0
 [clearance]: Clearance violation (zone clearance 0.5000 mm; actual 0.4204 mm)
     Local override; error
