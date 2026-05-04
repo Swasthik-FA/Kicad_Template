@@ -47,14 +47,17 @@ jobs:
         run: mkdir -p output/reports
 
       # ----------------------------------------------------------------------
-      # ERC + DRC — run via KiBot preflights so the project's rule_severities
-      # (from .kicad_pro) are honored exactly like the KiCad GUI. `kicad-cli`
-      # would NOT apply those overrides and silently misses errors. Outputs
-      # land in output/reports/ as erc-erc.{html,rpt,json} and
-      # drc-drc.{html,rpt,json}. `|| true` forces a zero exit so feature
-      # pushes never block.
+      # KiBot — full group. Runs ERC + DRC preflights (which honor the
+      # project's rule_severities, unlike `kicad-cli`) plus all visual and
+      # manufacturing outputs. Preflights write erc-erc.{html,rpt,json} and
+      # drc-drc.{html,rpt,json} into output/reports/ for the count step
+      # below. dont_stop=true on the DRC preflight keeps KiBot going past
+      # violations; `continue-on-error: true` plus `set +e` keep the
+      # workflow green regardless on feature branches.
       # ----------------------------------------------------------------------
-      - name: ERC + DRC via KiBot preflight (informational)
+      - name: KiBot — full group (preflights + outputs)
+        id: kibot
+        continue-on-error: true
         run: |
           set +e
           kibot \
@@ -63,7 +66,7 @@ jobs:
             -e "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_sch" \
             -b "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb" \
             --log "${KIBOT_LOG}" \
-            --only-pre || true
+            full
 
       # ----------------------------------------------------------------------
       # Count violations — purely informational. Drives a friendly summary,
@@ -71,6 +74,7 @@ jobs:
       # ----------------------------------------------------------------------
       - name: Count violations (informational)
         id: count
+        if: always()
         continue-on-error: true
         run: |
           python3 - <<'PY' >> "$GITHUB_OUTPUT"
@@ -106,30 +110,6 @@ jobs:
             --erc-rpt  output/reports/erc-erc.rpt \
             --drc-rpt  output/reports/drc-drc.rpt \
             --output   output/error-report.html || true
-
-      # ----------------------------------------------------------------------
-      # Visual outputs (KiBot — full group). --skip-pre erc,drc skips the
-      # preflights we already ran above so they aren't repeated.
-      # `continue-on-error: true` keeps the workflow green even if a render
-      # hiccups.
-      # ----------------------------------------------------------------------
-      - name: KiBot — full group
-        id: kibot
-        continue-on-error: true
-        run: |
-          set +e
-          # Run the full group so the navigate_results page's links to
-          # gerbers/, assembly/, bom/, drill/, schematic/, ibom/, 3d/, and
-          # reports/ all resolve to real files. Stage 1 stays informational
-          # and never blocks regardless of ERC/DRC severity.
-          kibot \
-            -c "${KIBOT_CONFIG}" \
-            -d output \
-            -e "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_sch" \
-            -b "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb" \
-            --skip-pre erc,drc \
-            --log "${KIBOT_LOG}" \
-            full
 
       # ----------------------------------------------------------------------
       # Friendly job-summary block — visible on the run page without

@@ -52,15 +52,17 @@ jobs:
         run: mkdir -p output/reports
 
       # ----------------------------------------------------------------------
-      # ERC + DRC — run via KiBot preflights so the project's rule_severities
-      # (from .kicad_pro) are honored exactly like the KiCad GUI. `kicad-cli`
-      # would NOT apply those overrides and silently misses errors that the
-      # GUI would flag (e.g. hole_clearance promoted to error). Outputs land
-      # as erc-erc.{html,rpt,json} and drc-drc.{html,rpt,json}. KiBot's
-      # preflight DRC has dont_stop=true so KiBot exits 0 even with errors;
-      # the gate below counts JSON entries with severity=error.
+      # ERC + DRC + lightweight visual outputs via KiBot's `visual` group.
+      # The preflights run as part of the group and honor the project's
+      # rule_severities (from .kicad_pro) exactly like the KiCad GUI;
+      # `kicad-cli` would NOT apply those overrides and silently misses
+      # errors that the GUI would flag (e.g. hole_clearance promoted to
+      # error). Preflight outputs land as erc-erc.{html,rpt,json} and
+      # drc-drc.{html,rpt,json}. dont_stop=true on the DRC preflight keeps
+      # KiBot going past violations; the gate below counts JSON entries
+      # with severity=error.
       # ----------------------------------------------------------------------
-      - name: ERC + DRC via KiBot preflight
+      - name: ERC + DRC via KiBot (visual group)
         run: |
           set +e
           kibot \
@@ -69,7 +71,7 @@ jobs:
             -e "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_sch" \
             -b "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb" \
             --log "${KIBOT_LOG}" \
-            --only-pre || true
+            visual || true
 
       # ----------------------------------------------------------------------
       # Count error-severity violations from the JSON reports.
@@ -129,21 +131,10 @@ jobs:
           if-no-files-found: warn
 
       # ----------------------------------------------------------------------
-      # On pass: produce visual + iBOM artifacts for the reviewer.
+      # On pass: visual + iBOM artifacts were already produced by the gate
+      # step above (visual group runs preflights + visual outputs together).
+      # We just upload them.
       # ----------------------------------------------------------------------
-      - name: KiBot — visual group (only if gate passes)
-        if: steps.count.outputs.total_errors == '0'
-        run: |
-          set +e
-          kibot \
-            -c "${KIBOT_CONFIG}" \
-            -d output \
-            -e "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_sch" \
-            -b "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb" \
-            --skip-pre erc,drc \
-            --log "${KIBOT_LOG}" \
-            visual
-
       - name: Upload PR review artifacts (only if gate passes)
         if: steps.count.outputs.total_errors == '0'
         uses: actions/upload-artifact@v4

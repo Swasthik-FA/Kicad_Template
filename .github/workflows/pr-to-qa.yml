@@ -44,10 +44,12 @@ jobs:
       - name: Prepare reports directory
         run: mkdir -p output/reports
 
-      # ERC + DRC via KiBot preflights — honors .kicad_pro rule_severities
-      # (kicad-cli does not, so it silently misses errors the GUI would flag).
-      # KiBot writes erc-erc.{html,rpt,json} and drc-drc.{html,rpt,json}.
-      - name: ERC + DRC via KiBot preflight
+      # ERC + DRC via KiBot's `visual` group — preflights run as part of
+      # the group and honor .kicad_pro rule_severities (kicad-cli does not,
+      # so it silently misses errors the GUI would flag). KiBot writes
+      # erc-erc.{html,rpt,json} and drc-drc.{html,rpt,json}. dont_stop=true
+      # on the DRC preflight keeps KiBot going past violations.
+      - name: ERC + DRC via KiBot (visual group)
         run: |
           set +e
           kibot \
@@ -56,7 +58,7 @@ jobs:
             -e "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_sch" \
             -b "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb" \
             --log "${KIBOT_LOG}" \
-            --only-pre || true
+            visual || true
 
       - name: Count violations
         id: count
