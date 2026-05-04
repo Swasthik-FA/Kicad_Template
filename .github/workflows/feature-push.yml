@@ -69,6 +69,25 @@ jobs:
             full
 
       # ----------------------------------------------------------------------
+      # Interactive 3D model. `kicad-cli pcb export glb` produces a binary
+      # glTF that the navigate_3d page embeds via Google's <model-viewer>
+      # web component (orbit + zoom + pinch). Requires HTTP(S); see the
+      # injected fallback message for how to view locally.
+      # ----------------------------------------------------------------------
+      - name: Export GLB for in-browser 3D viewer
+        continue-on-error: true
+        run: |
+          set +e
+          mkdir -p output/3d
+          PCB="${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb"
+          kicad-cli pcb export glb \
+            --subst-models \
+            --include-tracks --include-zones \
+            -o "output/3d/${KICAD_PROJECT}.glb" \
+            "${PCB}" || true
+          ls -la output/3d/ || true
+
+      # ----------------------------------------------------------------------
       # Count violations — purely informational. Drives a friendly summary,
       # NOT a merge gate. The job never exits non-zero based on this.
       # ----------------------------------------------------------------------
@@ -182,6 +201,114 @@ jobs:
                   nav.write_text(new, encoding="utf-8")
                   print(f"stripped rpt/json tiles from {nav}")
           PY
+
+          # Inject an interactive <model-viewer> at the top of the 3D
+          # navigate page, and convert the auto-generated .step tile into
+          # a clean "Download STEP" button. The model-viewer needs HTTP
+          # (ES modules are blocked over file://); the fallback message
+          # tells the user how to serve the page locally.
+          python3 - <<'PY' || true
+          import os, pathlib, re
+          project = os.environ.get("KICAD_PROJECT", "")
+          glb_rel = f"../3d/{project}.glb"
+          step_rel = f"../3d/{project}.step"
+          for nav in pathlib.Path("output").rglob("*-navigate_3d.html"):
+              s = nav.read_text(encoding="utf-8")
+
+              # 1. Inject script tag + viewer block (idempotent)
+              if "model-viewer" not in s:
+                  script_tag = (
+                      '<script type="module" '
+                      'src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4.0.0/'
+                      'dist/model-viewer.min.js"></script>\n'
+                  )
+                  if "</head>" in s:
+                      s = s.replace("</head>", script_tag + "</head>", 1)
+                  viewer_block = (
+                      '<div class="output-virtual-box" id="live_3d">\n'
+                      '<div class="output-comment">Interactive 3D model</div>\n'
+                      '<div class="items-container" '
+                      'style="grid-template-columns: 1fr;">\n'
+                      '<model-viewer '
+                      f'src="{glb_rel}" alt="PCB 3D model" '
+                      'camera-controls touch-action="pan-y" '
+                      'shadow-intensity="1" exposure="1.1" '
+                      'environment-image="neutral" '
+                      'interaction-prompt="auto" '
+                      'style="width:100%; height:640px; '
+                      'background:linear-gradient(135deg,#0B0F19,#161C2D); '
+                      'border-radius:16px; display:block; grid-column: 1 / -1;">'
+                      '<div slot="poster" '
+                      'style="display:flex;flex-direction:column;align-items:center;'
+                      'justify-content:center;height:100%;color:#94A0B8;'
+                      'font-family:Inter,sans-serif;text-align:center;padding:24px;'
+                      'background:linear-gradient(135deg,#0B0F19,#161C2D);'
+                      'border-radius:16px;">'
+                      '<div style="font-size:16px;font-weight:600;color:#E6E9F2;'
+                      'margin-bottom:8px;">Interactive 3D viewer</div>'
+                      '<div style="font-size:13px;line-height:1.6;max-width:480px;">'
+                      'Loading the PCB model… If this message stays, you opened '
+                      'this page from disk (file://). Serve it over HTTP — for '
+                      'example, run <code style="background:#1B2235;padding:2px 6px;'
+                      'border-radius:4px;font-family:ui-monospace,Menlo,monospace;">'
+                      'python -m http.server</code> from the repo root, then open '
+                      '<code style="background:#1B2235;padding:2px 6px;'
+                      'border-radius:4px;font-family:ui-monospace,Menlo,monospace;">'
+                      'http://localhost:8000/HTML/HTML/'
+                      f'{project}-navigate_3d.html</code>.'
+                      '</div>'
+                      '</div>'
+                      '</model-viewer>\n'
+                      '</div>\n'
+                      '</div>\n'
+                  )
+                  s = s.replace('<div id="main">',
+                                '<div id="main">\n' + viewer_block, 1)
+
+              # 2. Replace the auto-generated step tile with a styled
+              # download card (uses the `download` attribute so the file
+              # is always saved instead of opened by the browser).
+              step_block_re = re.compile(
+                  r'<div class="output-virtual-box" id="step">[\s\S]*?</div>\s*</div>',
+                  re.M,
+              )
+              new_step = (
+                  '<div class="output-virtual-box" id="step">\n'
+                  '<div class="output-comment">Download STEP</div>\n'
+                  '<div class="items-container">\n'
+                  f'<a class="output-box step-download" href="{step_rel}" '
+                  f'download="{project}.step" '
+                  'style="text-decoration:none;cursor:pointer;">'
+                  '<svg width="56" height="56" viewBox="0 0 24 24" fill="none" '
+                  'stroke="currentColor" stroke-width="1.6" stroke-linecap="round" '
+                  'stroke-linejoin="round" style="margin:8px 0 14px;color:#60A5FA;">'
+                  '<path d="M12 3v12"/>'
+                  '<path d="m7 10 5 5 5-5"/>'
+                  '<path d="M5 21h14"/>'
+                  '</svg>'
+                  f'<p class="filename">{project}.step</p>'
+                  '<p class="output-name">Click to download</p>'
+                  '</a>\n'
+                  '</div>\n'
+                  '</div>'
+              )
+              s2, n = step_block_re.subn(new_step, s, count=1)
+              if n:
+                  s = s2
+
+              nav.write_text(s, encoding="utf-8")
+              print(f"patched {nav}")
+          PY
+
+          # Override KiBot's auto-generated styles.css with our themed
+          # version (config/web/styles.css). Same class names, modernized
+          # look. Done before mirroring so the copy lands in HTML/HTML/.
+          if [ -f config/web/styles.css ]; then
+              for css in $(find output -name styles.css); do
+                  cp -f config/web/styles.css "$css"
+                  echo "themed $css"
+              done
+          fi
 
           # Mirror the entire KiBot output tree under HTML/ so the
           # navigate_results webpage's relative links (../3d/, ../reports/,
