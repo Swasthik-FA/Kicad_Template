@@ -1,0 +1,23 @@
+# ============================================================================
+# Output: schematic in PDF format
+# ----------------------------------------------------------------------------
+# Mirrors reference's kibot_out_pdf_schematic.yaml.
+# ============================================================================
+kibot:
+  version: 1
+
+outputs:
+  - name: '@NAME@'
+    comment: '@COMMENT@'
+    type: pdf_sch_print
+    dir: '@DIR@'
+    category: '@DIR@'
+    options:
+      output: '%f-schematic%I%v.%x'
+      background_color: false
+
+...
+definitions:
+  NAME: pdf_schematic
+  COMMENT: Schematic in PDF format
+  DIR: schematic

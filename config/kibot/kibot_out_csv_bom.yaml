@@ -1,0 +1,45 @@
+# ============================================================================
+# Output: BOM in CSV format
+# ----------------------------------------------------------------------------
+# Mirrors reference's kibot_out_csv_bom.yaml. JLCPCB-friendly column layout.
+# ============================================================================
+kibot:
+  version: 1
+
+outputs:
+  - name: '@NAME@'
+    comment: '@COMMENT@'
+    type: bom
+    dir: '@DIR@'
+    category: '@DIR@'
+    options:
+      output: '%f-bom%I%v.%x'
+      format: CSV
+      csv:
+        separator: ','
+        hide_pcb_info: true
+        hide_stats_info: true
+      group_fields: ['Value', 'Footprint', 'LCSC', '@MPN_FIELD@']
+      columns:
+        - field: References
+          name: Reference
+        - field: Value
+          name: Value
+        - field: Footprint
+          name: Footprint
+        - field: Quantity Per PCB
+          name: Quantity
+        - field: LCSC
+          name: 'LCSC Part #'
+        - field: '@MPN_FIELD@'
+          name: MPN
+        - field: '@MAN_FIELD@'
+          name: Manufacturer
+
+...
+definitions:
+  NAME: csv_bom
+  COMMENT: Bill of Materials in CSV format
+  DIR: bom
+  MPN_FIELD: 'MPN'
+  MAN_FIELD: 'Manufacturer'

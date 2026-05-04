@@ -1,0 +1,40 @@
+# ============================================================================
+# Output: Gerber files (JLCPCB-compatible defaults)
+# ----------------------------------------------------------------------------
+# Mirrors reference's kibot_out_gerber.yaml.
+# ============================================================================
+kibot:
+  version: 1
+
+outputs:
+  - name: '@NAME@'
+    comment: '@COMMENT@'
+    type: gerber
+    dir: '@DIR@'
+    category: '@DIR@'
+    layers:
+      - copper
+      - F.Silkscreen
+      - B.Silkscreen
+      - F.Mask
+      - B.Mask
+      - F.Paste
+      - B.Paste
+      - Edge.Cuts
+    options:
+      output: '%f-%i%I%v.%x'
+      subtract_mask_from_silk: true
+      plot_footprint_refs: @PLOT_REFS@
+      plot_footprint_values: false
+      create_gerber_job_file: true
+      use_protel_extensions: true
+      gerber_precision: 4.6
+      tent_vias: true
+      use_aux_axis_as_origin: false
+
+...
+definitions:
+  NAME: gerbers
+  COMMENT: Gerbers (JLCPCB defaults)
+  DIR: gerbers
+  PLOT_REFS: true

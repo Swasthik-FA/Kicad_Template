@@ -1,16 +1,16 @@
 # ============================================================================
-# Stage 1 — Feature branch push (FAST, no gating)
+# Stage 1 — Feature branch push (RELAXED, never blocks)
 # ----------------------------------------------------------------------------
 # Trigger:  any push to a `feature/**` branch.
-# Purpose:  fast schematic + 3D PNG previews so the engineer can sanity-check
-#           work without being blocked on ERC/DRC.
-#
-# Implementation: uses the official INTI-CMNB/KiBot@v2_dk8 GitHub Action,
-#                 the same way the reference Fastbit ci.yaml workflow does.
-#                 The action provides the KiCad 8 + KiBot environment with
-#                 cache3D enabled, which is what makes render_3d reliable.
+# Purpose:  early-warning ERC/DRC + visual previews so the engineer can see
+#           issues immediately. NOTHING here ever fails the workflow —
+#           feature branches push freely. Issues only become merge-blockers
+#           at Stage 2 (PR → dev).
+# Outputs:
+#   - error-report.html       (always — green when clean, red with details when not)
+#   - schematic PDF, 3 × 3D PNG renders, interactive HTML BOM
 # ============================================================================
-name: Feature push — visual preview
+name: Feature push — visual preview (relaxed ERC/DRC)
 
 on:
   push:
@@ -20,66 +20,215 @@ on:
 env:
   KICAD_PROJECT_DIR: hardware
   KICAD_PROJECT: Nano-Board-rev-2
-  KIBOT_CONFIG: config/kibot-visual.yaml
+  KIBOT_CONFIG: config/kibot/kibot_main.yaml
   KIBOT_LOG: kibot_run.log
 
+permissions:
+  contents: write
+
 jobs:
-  visual-preview:
-    name: Visual preview (no ERC/DRC)
+  visual:
+    name: Visual preview (no gating)
     runs-on: ubuntu-latest
 
+    container:
+      image: ghcr.io/inti-cmnb/kicad_auto:ki9
+      options: --user root
+
+    defaults:
+      run:
+        shell: bash
+
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      # Cache 3D models between runs (mirrors the reference workflow). Saves
-      # ~30-60 s on subsequent runs and makes render_3d much more reliable.
-      - name: Cache 3D models data
-        id: models-cache
-        uses: actions/cache@v4
-        with:
-          path: ~/cache_3d
-          key: cache_3d-${{ runner.os }}
+      - name: Prepare reports directory
+        run: mkdir -p output/reports
 
-      # The KiBot action provides the KiCad 8 + KiBot container, mounts the
-      # repo, and forwards options to the kibot CLI. Same pattern as the
-      # reference's "Generate outputs (KiCad 8)" step.
-      - name: Generate visuals (KiBot, KiCad 9)
+      # ----------------------------------------------------------------------
+      # KiBot — full group. Runs ERC + DRC preflights (which honor the
+      # project's rule_severities, unlike `kicad-cli`) plus all visual and
+      # manufacturing outputs. Preflights write erc-erc.{html,rpt,json} and
+      # drc-drc.{html,rpt,json} into output/reports/ for the count step
+      # below. dont_stop=true on the DRC preflight keeps KiBot going past
+      # violations; `continue-on-error: true` plus `set +e` keep the
+      # workflow green regardless on feature branches.
+      # ----------------------------------------------------------------------
+      - name: KiBot — full group (preflights + outputs)
         id: kibot
         continue-on-error: true
-        uses: INTI-CMNB/KiBot@v2_dk9
-        with:
-          config: ${{ env.KIBOT_CONFIG }}
-          schema: ${{ env.KICAD_PROJECT_DIR }}/${{ env.KICAD_PROJECT }}.kicad_sch
-          board: ${{ env.KICAD_PROJECT_DIR }}/${{ env.KICAD_PROJECT }}.kicad_pcb
-          dir: output
-          additional_args: --log ${{ env.KIBOT_LOG }}
-          cache3D: YES
-
-      # Always print the KiBot log tail and the output tree so failures are
-      # diagnosable from the Actions UI alone (no need to download artifacts).
-      - name: Show KiBot log + output tree
-        if: always()
-        shell: bash
         run: |
-          echo "::group::Last 100 lines of KiBot log"
-          [ -f "${KIBOT_LOG}" ] && tail -n 100 "${KIBOT_LOG}" || echo "(log file missing)"
-          echo "::endgroup::"
-          echo "::group::output/ contents"
-          if [ -d output ]; then
-            find output -maxdepth 4 -printf '%p\n' | sort
-          else
-            echo "(no output directory)"
-          fi
-          echo "::endgroup::"
+          set +e
+          kibot \
+            -c "${KIBOT_CONFIG}" \
+            -d output \
+            -e "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_sch" \
+            -b "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb" \
+            --log "${KIBOT_LOG}" \
+            full
 
-      # Always upload whatever was produced, plus the kibot log for offline
-      # debugging. `if-no-files-found: warn` keeps the job green when output
-      # is empty so we still get the annotations.
+      # ----------------------------------------------------------------------
+      # Count violations — purely informational. Drives a friendly summary,
+      # NOT a merge gate. The job never exits non-zero based on this.
+      # ----------------------------------------------------------------------
+      - name: Count violations (informational)
+        id: count
+        if: always()
+        continue-on-error: true
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          def tally(p):
+              try: j = json.load(open(p))
+              except Exception: return 0,0
+              e=w=0
+              for sh in j.get('sheets',[j]):
+                  for v in sh.get('violations',[]) or []:
+                      s=(v.get('severity') or '').lower()
+                      e += s=='error'; w += s=='warning'
+              for s2 in ('unconnected_items','schematic_parity'):
+                  for v in j.get(s2,[]) or []:
+                      s=(v.get('severity') or '').lower()
+                      e += s=='error'; w += s=='warning'
+              return e,w
+          ee,ew = tally('output/reports/erc-erc.json')
+          de,dw = tally('output/reports/drc-drc.json')
+          print(f"erc_errors={ee}")
+          print(f"erc_warnings={ew}")
+          print(f"drc_errors={de}")
+          print(f"drc_warnings={dw}")
+          PY
+
+      - name: Generate error report HTML (always)
+        if: always()
+        continue-on-error: true
+        run: |
+          python3 config/generate_error_report.py \
+            --erc-json output/reports/erc-erc.json \
+            --drc-json output/reports/drc-drc.json \
+            --erc-rpt  output/reports/erc-erc.rpt \
+            --drc-rpt  output/reports/drc-drc.rpt \
+            --output   output/error-report.html || true
+
+      # ----------------------------------------------------------------------
+      # Friendly job-summary block — visible on the run page without
+      # downloading anything. Pure information, never blocks.
+      # ----------------------------------------------------------------------
+      - name: Job summary
+        if: always()
+        continue-on-error: true
+        run: |
+          {
+            echo "## Feature push — visual preview"
+            echo ""
+            echo "| Check | Errors | Warnings |"
+            echo "|-------|--------|----------|"
+            echo "| ERC   | ${{ steps.count.outputs.erc_errors }} | ${{ steps.count.outputs.erc_warnings }} |"
+            echo "| DRC   | ${{ steps.count.outputs.drc_errors }} | ${{ steps.count.outputs.drc_warnings }} |"
+            echo ""
+            echo "ERC/DRC are **informational only** on feature branches. They block merges only at the PR-to-dev stage."
+            echo ""
+            echo "### Output tree"
+            echo '```'
+            [ -d output ] && find output -maxdepth 4 | sort || echo "(no output)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # ----------------------------------------------------------------------
+      # Publish rendered PNGs and refresh repo-name placeholder in README.
+      # The README has marker comments <!--REPO_NAME-->...<!--/REPO_NAME-->;
+      # we always rewrite the content between them with the live GitHub repo
+      # name so the title tracks renames automatically.
+      # Pushes made by GITHUB_TOKEN do not re-trigger workflows, so no loop.
+      # ----------------------------------------------------------------------
+      - name: Publish renders and refresh README repo name
+        if: always()
+        continue-on-error: true
+        env:
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          set +e
+          # The navigate_results page links to erc-erc.{html,rpt,json} and
+          # drc-drc.{html,rpt,json}. KiBot's preflight already wrote the
+          # .rpt/.json with those exact names, so we just regenerate the
+          # custom-styled HTML pages on top.
+          mkdir -p output/reports
+          # ERC-only page
+          python3 config/generate_error_report.py \
+            --erc-json output/reports/erc-erc.json \
+            --erc-rpt  output/reports/erc-erc.rpt \
+            --output   output/reports/erc-erc.html || true
+          # DRC-only page
+          python3 config/generate_error_report.py \
+            --drc-json output/reports/drc-drc.json \
+            --drc-rpt  output/reports/drc-drc.rpt \
+            --output   output/reports/drc-drc.html || true
+
+          # Strip the .rpt and .json tiles from KiBot's navigate_reports.html
+          # so the navigate page only links to the HTML reports. The .rpt /
+          # .json files still ship in HTML/reports/ and are linked as
+          # downloads from inside erc-erc.html and drc-drc.html.
+          python3 - <<'PY' || true
+          import re, pathlib
+          for nav in pathlib.Path("output").rglob("*-navigate_reports.html"):
+              s = nav.read_text(encoding="utf-8")
+              new = re.sub(
+                  r'\s*<div class="output-box[^"]*"\s+onclick="[^"]*\.(?:rpt|json)\'"[^>]*>[\s\S]*?</div>',
+                  "",
+                  s,
+              )
+              if new != s:
+                  nav.write_text(new, encoding="utf-8")
+                  print(f"stripped rpt/json tiles from {nav}")
+          PY
+
+          # Mirror the entire KiBot output tree under HTML/ so the
+          # navigate_results webpage's relative links (../3d/, ../reports/,
+          # ../schematic/, ../ibom/, …) resolve correctly when browsed
+          # from the repo. Wipe HTML/ first to avoid stale files.
+          mkdir -p HTML
+          find HTML -mindepth 1 ! -name '.gitkeep' -exec rm -rf {} + 2>/dev/null
+          if [ -d output ]; then
+            cp -rf output/. HTML/
+          fi
+          [ -f output/error-report.html ] && cp -f output/error-report.html HTML/error-report.html
+
+          # Rewrite the repo-name placeholder in README.md, idempotently.
+          if [ -f README.md ]; then
+            python3 - <<PY
+          import os, re, pathlib
+          p = pathlib.Path("README.md")
+          s = p.read_text(encoding="utf-8")
+          name = os.environ["REPO_NAME"]
+          new = re.sub(
+              r"<!--REPO_NAME-->.*?<!--/REPO_NAME-->",
+              f"<!--REPO_NAME-->{name}<!--/REPO_NAME-->",
+              s, flags=re.S,
+          )
+          if new != s:
+              p.write_text(new, encoding="utf-8")
+              print(f"README.md: repo name set to {name}")
+          else:
+              print("README.md: repo name already current")
+          PY
+          fi
+
+          # Make git happy inside the container
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add HTML README.md
+          if git diff --cached --quiet; then
+            echo "Nothing to commit."
+            exit 0
+          fi
+          git commit -m "ci: refresh 3D PCB renders and README repo name [skip ci]"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+
       - name: Upload visual preview artifact
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: visual-preview-${{ github.run_number }}-${{ github.sha }}
@@ -88,3 +237,13 @@ jobs:
             ${{ env.KIBOT_LOG }}
           retention-days: 14
           if-no-files-found: warn
+
+      # ----------------------------------------------------------------------
+      # Final step — explicit success. Stage 1 is informational only and
+      # must NEVER mark the run red, no matter what happened upstream.
+      # ----------------------------------------------------------------------
+      - name: Always succeed
+        if: always()
+        run: |
+          echo "Stage 1 (feature push) is informational only — run finishes green regardless of ERC/DRC/render results."
+          exit 0
