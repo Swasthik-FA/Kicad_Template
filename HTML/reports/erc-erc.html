@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Nano-Board-rev-2 — ERC report</title>
+<style>
+*,*::before,*::after { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, sans-serif;
+  color: #1F2937;
+  background: #F3F4F6;
+  line-height: 1.45;
+}
+header.banner {
+  background: #1F2937;
+  color: #F9FAFB;
+  padding: 28px 32px 24px;
+}
+header.banner h1 {
+  margin: 0 0 6px;
+  font-size: 22px;
+  letter-spacing: 0.5px;
+}
+header.banner .sub {
+  color: #9CA3AF;
+  font-size: 13px;
+}
+header.banner a { color: #93C5FD; }
+.fail-bar {
+  background: #DC2626;
+  color: #fff;
+  padding: 12px 32px;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+.fail-bar.ok { background: #16A34A; }
+main { padding: 24px 32px; max-width: 1200px; margin: 0 auto; }
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.card {
+  background: #fff;
+  padding: 14px 16px;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.06);
+  border-left: 4px solid #E5E7EB;
+}
+.card .label { font-size: 11px; text-transform: uppercase; color: #6B7280; letter-spacing: .8px; }
+.card .value { font-size: 26px; font-weight: 700; margin-top: 4px; }
+.card.err  { border-left-color: #DC2626; }
+.card.warn { border-left-color: #F59E0B; }
+.card.ok   { border-left-color: #16A34A; }
+.card.err  .value { color: #DC2626; }
+.card.warn .value { color: #F59E0B; }
+.card.ok   .value { color: #16A34A; }
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+.badge.error    { background: #FEE2E2; color: #B91C1C; }
+.badge.warning  { background: #FEF3C7; color: #B45309; }
+.badge.ok       { background: #DCFCE7; color: #166534; }
+.badge.exclusion{ background: #E5E7EB; color: #374151; }
+section { margin-bottom: 32px; }
+section h2 {
+  font-size: 16px;
+  margin: 0 0 12px;
+  display: flex; align-items: center; gap: 10px;
+}
+.toolbar {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  margin-bottom: 12px; align-items: center;
+}
+.toolbar input[type=search] {
+  padding: 7px 10px; border: 1px solid #D1D5DB;
+  border-radius: 6px; min-width: 220px; font-size: 13px;
+}
+.toolbar label {
+  font-size: 12px; color: #374151;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.toolbar select {
+  padding: 6px 8px; border: 1px solid #D1D5DB; border-radius: 6px;
+  font-size: 13px; background: #fff;
+}
+table {
+  width: 100%; border-collapse: collapse; background: #fff;
+  border-radius: 8px; overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0,0,0,.05);
+  font-size: 13px;
+}
+th, td { text-align: left; padding: 10px 12px; vertical-align: top; }
+thead { background: #F9FAFB; }
+th { font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: #6B7280; }
+tbody tr { border-top: 1px solid #F3F4F6; }
+tbody tr.severity-error    { background: #FEF2F2; }
+tbody tr.severity-warning  { background: #FFFBEB; }
+tbody tr.hidden { display: none; }
+code {
+  background: #F3F4F6; padding: 1px 6px; border-radius: 4px;
+  font-size: 12px; color: #374151;
+}
+.refs code { margin-right: 4px; }
+.fixes {
+  background: #fff; padding: 16px 20px; border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.05);
+}
+.fixes h3 { margin-top: 0; font-size: 14px; }
+.fixes ul { margin: 0; padding-left: 20px; }
+.fixes li { margin-bottom: 6px; font-size: 13px; }
+.empty {
+  background: #fff; padding: 22px; text-align: center; color: #6B7280;
+  border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,.05);
+}
+.image-block { background: #fff; padding: 12px; border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.05); margin-top: 12px; }
+.image-block img { max-width: 100%; height: auto; display: block; }
+.downloads {
+  background: #fff; padding: 14px 18px; border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.05); margin-bottom: 24px;
+}
+.downloads h3 { margin: 0 0 10px; font-size: 13px; color: #374151;
+  text-transform: uppercase; letter-spacing: .6px; }
+.download-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.download-link {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 14px; border-radius: 6px;
+  background: #EEF2FF; color: #1E40AF;
+  text-decoration: none; font-size: 13px; font-weight: 600;
+  border: 1px solid #C7D2FE;
+  transition: background .12s ease;
+}
+.download-link:hover { background: #E0E7FF; }
+.download-link .dl-kind {
+  background: #1E40AF; color: #fff; font-size: 10px;
+  padding: 2px 6px; border-radius: 4px; letter-spacing: .5px;
+}
+.download-link .dl-name { font-family: ui-monospace, SFMono-Regular,
+  Menlo, monospace; font-weight: 500; }
+@media print {
+  body { background: #fff; }
+  header.banner { background: #fff; color: #111; border-bottom: 2px solid #DC2626; }
+  header.banner .sub, header.banner a { color: #374151; }
+  .toolbar { display: none; }
+  .card { break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<header class="banner">
+  <h1>Nano-Board-rev-2 &mdash; erc report</h1>
+  <div class="sub">branch <code>feature/test-pipeline</code> &middot; commit <code>0bec0eba</code> &middot; <a href="https://github.com/Swasthik-FA/Kicad_Template/actions/runs/25306979777">workflow run</a> &middot; 2026-05-04 07:40:33 UTC</div>
+</header>
+<div class="fail-bar ok">&#10003; ERC passed</div>
+<main>
+  <div class="cards">
+    <div class="card ok"><div class="label">ERC errors</div><div class="value">0</div></div><div class="card warn"><div class="label">ERC warnings</div><div class="value">10</div></div>
+    <div class="card"><div class="label">ERC</div><div class="value"><span class="badge ok">PASS</span></div></div>
+  </div>
+
+  
+
+  <section class="downloads"><h3>Download ERC report</h3><div class="download-row"><a class="download-link" href="erc-erc.rpt" download><span class="dl-kind">RPT</span><span class="dl-name">erc-erc.rpt</span></a><a class="download-link" href="erc-erc.json" download><span class="dl-kind">JSON</span><span class="dl-name">erc-erc.json</span></a></div></section>
+
+  <section><h2>ERC violations <span class="badge error">0 errors</span> <span class="badge warning">10 warnings</span></h2><div class="toolbar"><input type="search" placeholder="Search refs, nets, descriptions…" data-target="erc-table" data-kind="search"/><label>Severity <select data-target="erc-table" data-kind="sev"><option value="all">all</option><option value="error">errors only</option><option value="warning">warnings only</option></select></label><label>Code <select data-target="erc-table" data-kind="code"><option value="all">all</option><option value="footprint_link_issues">footprint_link_issues</option><option value="lib_symbol_issues">lib_symbol_issues</option></select></label></div><table id="erc-table"><thead><tr><th>Severity</th><th>Code</th><th>Description</th><th>Components / Nets</th><th>Location</th></tr></thead><tbody><tr class="severity-warning" data-severity="warning" data-code="footprint_link_issues"><td><span class="badge warning">warning</span></td><td><code>footprint_link_issues</code></td><td>The current configuration does not include the footprint library &#x27;FB_Library&#x27;.</td><td class="refs"><code>J2</code></td><td>sheet <code>/</code><br>@ <code>2.77 mm, 0.85 mm</code></td></tr><tr class="severity-warning" data-severity="warning" data-code="footprint_link_issues"><td><span class="badge warning">warning</span></td><td><code>footprint_link_issues</code></td><td>The current configuration does not include the footprint library &#x27;Footprint&#x27;.</td><td class="refs"><code>U8</code> <code>MPU6050</code></td><td>sheet <code>/</code><br>@ <code>3.28 mm, 1.71 mm</code></td></tr><tr class="severity-warning" data-severity="warning" data-code="lib_symbol_issues"><td><span class="badge warning">warning</span></td><td><code>lib_symbol_issues</code></td><td>The current configuration does not include the symbol library &#x27;MPU&#x27;</td><td class="refs"><code>U8</code> <code>MPU6050</code></td><td>sheet <code>/</code><br>@ <code>3.28 mm, 1.71 mm</code></td></tr><tr class="severity-warning" data-severity="warning" data-code="footprint_link_issues"><td><span class="badge warning">warning</span></td><td><code>footprint_link_issues</code></td><td>The current configuration does not include the footprint library &#x27;fp&#x27;.</td><td class="refs"><code>J6</code></td><td>sheet <code>/</code><br>@ <code>1.05 mm, 1.50 mm</code></td></tr><tr class="severity-warning" data-severity="warning" data-code="footprint_link_issues"><td><span class="badge warning">warning</span></td><td><code>footprint_link_issues</code></td><td>The current configuration does not include the footprint library &#x27;FPC_CONNECTOR24&#x27;.</td><td class="refs"><code>U3</code></td><td>sheet <code>/</code><br>@ <code>2.48 mm, 0.67 mm</code></td></tr><tr class="severity-warning" data-severity="warning" data-code="lib_symbol_issues"><td><span class="badge warning">warning</span></td><td><code>lib_symbol_issues</code></td><td>The current configuration does not include the symbol library &#x27;LCD_Con&#x27;</td><td class="refs"><code>U3</code></td><td>sheet <code>/</code><br>@ <code>2.48 mm, 0.67 mm</code></td></tr><tr class="severity-warning" data-severity="warning" data-code="footprint_link_issues"><td><span class="badge warning">warning</span></td><td><code>footprint_link_issues</code></td><td>The current configuration does not include the footprint library &#x27;model&#x27;.</td><td class="refs"><code>U6</code></td><td>sheet <code>/</code><br>@ <code>0.84 mm, 0.84 mm</code></td></tr><tr class="severity-warning" data-severity="warning" data-code="lib_symbol_issues"><td><span class="badge warning">warning</span></td><td><code>lib_symbol_issues</code></td><td>The current configuration does not include the symbol library &#x27;STLINK-V3MODS&#x27;</td><td class="refs"><code>U6</code></td><td>sheet <code>/</code><br>@ <code>0.84 mm, 0.84 mm</code></td></tr><tr class="severity-warning" data-severity="warning" data-code="footprint_link_issues"><td><span class="badge warning">warning</span></td><td><code>footprint_link_issues</code></td><td>The current configuration does not include the footprint library &#x27;model&#x27;.</td><td class="refs"><code>U6</code></td><td>sheet <code>/</code><br>@ <code>1.92 mm, 0.94 mm</code></td></tr><tr class="severity-warning" data-severity="warning" data-code="lib_symbol_issues"><td><span class="badge warning">warning</span></td><td><code>lib_symbol_issues</code></td><td>The current configuration does not include the symbol library &#x27;STLINK-V3MODS&#x27;</td><td class="refs"><code>U6</code></td><td>sheet <code>/</code><br>@ <code>1.92 mm, 0.94 mm</code></td></tr></tbody></table></section>
+
+  <section class="fixes">
+    <h3>How to fix common issues</h3>
+    <ul>
+      <li><b>lib_symbol_issues / footprint_link_issues</b> — open the symbol/footprint library manager and add the missing library, or change the symbol/footprint to one from a configured library.</li>
+      <li><b>unconnected pins</b> — connect the pin or place a "no-connect" flag if it is intentionally unused.</li>
+      <li><b>clearance</b> — increase track-to-track or pad-to-track spacing, or relax the design rule for that net class if appropriate.</li>
+      <li><b>track width</b> — match the design-rule minimum for the net class (typically 0.15 mm for signal, 0.25 mm+ for power).</li>
+      <li><b>silkscreen over pad</b> — move the reference designator off the pad in the footprint editor or hide it.</li>
+      <li><b>schematic_parity</b> — re-run "Update PCB from Schematic" so the layout matches the latest netlist.</li>
+      <li><b>holes too close</b> — separate drilled holes by at least the manufacturer minimum (commonly 0.5 mm).</li>
+    </ul>
+  </section>
+</main>
+<script>
+function applyFilter(tableId) {
+  const t = document.getElementById(tableId);
+  if (!t) return;
+  const sevSel = document.querySelector(`[data-target="${tableId}"][data-kind="sev"]`);
+  const codeSel = document.querySelector(`[data-target="${tableId}"][data-kind="code"]`);
+  const search = document.querySelector(`[data-target="${tableId}"][data-kind="search"]`);
+  const sev = sevSel ? sevSel.value : 'all';
+  const code = codeSel ? codeSel.value : 'all';
+  const q = (search ? search.value : '').toLowerCase().trim();
+  t.querySelectorAll('tbody tr').forEach(tr => {
+    const rsev = tr.dataset.severity || '';
+    const rcode = tr.dataset.code || '';
+    const text = (tr.innerText || '').toLowerCase();
+    let show = true;
+    if (sev !== 'all' && rsev !== sev) show = false;
+    if (code !== 'all' && rcode !== code) show = false;
+    if (q && !text.includes(q)) show = false;
+    tr.classList.toggle('hidden', !show);
+  });
+}
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('[data-target]').forEach(el => {
+    const target = el.dataset.target;
+    el.addEventListener('input', () => applyFilter(target));
+    el.addEventListener('change', () => applyFilter(target));
+  });
+});
+</script>
+</body>
+</html>

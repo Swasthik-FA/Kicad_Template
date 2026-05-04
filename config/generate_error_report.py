@@ -334,6 +334,28 @@ code {
 .image-block { background: #fff; padding: 12px; border-radius: 8px;
   box-shadow: 0 1px 2px rgba(0,0,0,.05); margin-top: 12px; }
 .image-block img { max-width: 100%; height: auto; display: block; }
+.downloads {
+  background: #fff; padding: 14px 18px; border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.05); margin-bottom: 24px;
+}
+.downloads h3 { margin: 0 0 10px; font-size: 13px; color: #374151;
+  text-transform: uppercase; letter-spacing: .6px; }
+.download-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.download-link {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 14px; border-radius: 6px;
+  background: #EEF2FF; color: #1E40AF;
+  text-decoration: none; font-size: 13px; font-weight: 600;
+  border: 1px solid #C7D2FE;
+  transition: background .12s ease;
+}
+.download-link:hover { background: #E0E7FF; }
+.download-link .dl-kind {
+  background: #1E40AF; color: #fff; font-size: 10px;
+  padding: 2px 6px; border-radius: 4px; letter-spacing: .5px;
+}
+.download-link .dl-name { font-family: ui-monospace, SFMono-Regular,
+  Menlo, monospace; font-weight: 500; }
 @media print {
   body { background: #fff; }
   header.banner { background: #fff; color: #111; border-bottom: 2px solid #DC2626; }
@@ -465,8 +487,41 @@ def _card(label: str, value: int, kind: str) -> str:
             f'<div class="value">{value}</div></div>')
 
 
+def _downloads_block(rpt: Path | None, json_path: Path | None,
+                     output_dir: Path, label: str) -> str:
+    """Build a small download-card row for the .rpt and .json files of a
+    single kind. Links are emitted as basenames relative to the output
+    HTML so they resolve when both files sit in the same directory."""
+    parts = []
+    for p, kind in ((rpt, "RPT"), (json_path, "JSON")):
+        if p and p.exists():
+            try:
+                rel = os.path.relpath(p.resolve(), output_dir.resolve())
+            except ValueError:
+                rel = p.name
+            rel = rel.replace(os.sep, "/")
+            parts.append(
+                f'<a class="download-link" href="{html.escape(rel)}" download>'
+                f'<span class="dl-kind">{html.escape(kind)}</span>'
+                f'<span class="dl-name">{html.escape(p.name)}</span>'
+                f'</a>'
+            )
+    if not parts:
+        return ""
+    return (
+        f'<section class="downloads">'
+        f'<h3>Download {html.escape(label)} report</h3>'
+        f'<div class="download-row">{"".join(parts)}</div>'
+        f'</section>'
+    )
+
+
 def render_html(erc: list[Violation], drc: list[Violation],
-                pcb_image: Path | None) -> str:
+                pcb_image: Path | None,
+                show_erc: bool = True, show_drc: bool = True,
+                erc_rpt: Path | None = None, erc_json: Path | None = None,
+                drc_rpt: Path | None = None, drc_json: Path | None = None,
+                output_path: Path | None = None) -> str:
     repo = os.environ.get("GITHUB_REPOSITORY", "")
     branch = os.environ.get("GITHUB_REF_NAME", "")
     sha = os.environ.get("GITHUB_SHA", "")
@@ -480,19 +535,26 @@ def render_html(erc: list[Violation], drc: list[Violation],
     erc_warn = sum(1 for v in erc if v.severity == "warning")
     drc_err = sum(1 for v in drc if v.severity == "error")
     drc_warn = sum(1 for v in drc if v.severity == "warning")
-    failed = (erc_err + drc_err) > 0
+    failed = (erc_err if show_erc else 0) + (drc_err if show_drc else 0) > 0
 
-    cards = (
-        _card("ERC errors", erc_err, "err" if erc_err else "ok")
-        + _card("ERC warnings", erc_warn, "warn" if erc_warn else "ok")
-        + _card("DRC errors", drc_err, "err" if drc_err else "ok")
-        + _card("DRC warnings", drc_warn, "warn" if drc_warn else "ok")
-    )
+    card_chunks = []
+    if show_erc:
+        card_chunks.append(_card("ERC errors", erc_err, "err" if erc_err else "ok"))
+        card_chunks.append(_card("ERC warnings", erc_warn, "warn" if erc_warn else "ok"))
+    if show_drc:
+        card_chunks.append(_card("DRC errors", drc_err, "err" if drc_err else "ok"))
+        card_chunks.append(_card("DRC warnings", drc_warn, "warn" if drc_warn else "ok"))
+    cards = "".join(card_chunks)
 
-    erc_badge = ('<span class="badge error">FAIL</span>' if erc_err
-                 else '<span class="badge ok">PASS</span>')
-    drc_badge = ('<span class="badge error">FAIL</span>' if drc_err
-                 else '<span class="badge ok">PASS</span>')
+    status_cards = ""
+    if show_erc:
+        erc_badge = ('<span class="badge error">FAIL</span>' if erc_err
+                     else '<span class="badge ok">PASS</span>')
+        status_cards += f'<div class="card"><div class="label">ERC</div><div class="value">{erc_badge}</div></div>'
+    if show_drc:
+        drc_badge = ('<span class="badge error">FAIL</span>' if drc_err
+                     else '<span class="badge ok">PASS</span>')
+        status_cards += f'<div class="card"><div class="label">DRC</div><div class="value">{drc_badge}</div></div>'
 
     image_block = _embed_image(pcb_image) if pcb_image else ""
 
@@ -506,35 +568,57 @@ def render_html(erc: list[Violation], drc: list[Violation],
     sub_bits.append(timestamp)
     sub_html = " &middot; ".join(sub_bits)
 
+    if show_erc and show_drc:
+        kinds = "ERC / DRC"
+    elif show_erc:
+        kinds = "ERC"
+    else:
+        kinds = "DRC"
+
     fail_bar_class = "fail-bar" if failed else "fail-bar ok"
-    fail_bar_text = ("&#9888;&#65039; ERC / DRC FAILED &mdash; merge blocked"
-                     if failed else "&#10003; ERC / DRC passed")
+    fail_bar_text = (f"&#9888;&#65039; {kinds} FAILED &mdash; merge blocked"
+                     if failed else f"&#10003; {kinds} passed")
+
+    title_kind = kinds
+
+    out_dir = (output_path.parent if output_path else Path("."))
+    downloads_html = ""
+    if show_erc:
+        downloads_html += _downloads_block(erc_rpt, erc_json, out_dir, "ERC")
+    if show_drc:
+        downloads_html += _downloads_block(drc_rpt, drc_json, out_dir, "DRC")
+
+    sections_html = ""
+    if show_erc:
+        sections_html += _section("ERC violations", "erc-table", erc)
+    if show_drc:
+        sections_html += _section("DRC violations", "drc-table", drc)
 
     return f"""<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>{html.escape(project)} — ERC/DRC report</title>
+<title>{html.escape(project)} — {html.escape(title_kind)} report</title>
 <style>{CSS}</style>
 </head>
 <body>
 <header class="banner">
-  <h1>{html.escape(project)} &mdash; design rule check report</h1>
+  <h1>{html.escape(project)} &mdash; {html.escape(title_kind.lower())} report</h1>
   <div class="sub">{sub_html}</div>
 </header>
 <div class="{fail_bar_class}">{fail_bar_text}</div>
 <main>
   <div class="cards">
     {cards}
-    <div class="card"><div class="label">ERC</div><div class="value">{erc_badge}</div></div>
-    <div class="card"><div class="label">DRC</div><div class="value">{drc_badge}</div></div>
+    {status_cards}
   </div>
 
   {image_block}
 
-  {_section("ERC violations", "erc-table", erc)}
-  {_section("DRC violations", "drc-table", drc)}
+  {downloads_html}
+
+  {sections_html}
 
   <section class="fixes">
     <h3>How to fix common issues</h3>
@@ -572,6 +656,16 @@ def main() -> int:
     erc: list[Violation] = []
     drc: list[Violation] = []
 
+    # A kind is "shown" if at least one of its inputs was passed on the
+    # CLI. The per-kind pages (erc-erc.html, drc-drc.html) call this script
+    # with only one set of flags and get a single-kind page; the combined
+    # error-report.html passes both sets and gets the dual-kind page. If
+    # neither side was passed, fall back to showing both (legacy behavior).
+    erc_requested = bool(args.erc_json or args.erc_rpt)
+    drc_requested = bool(args.drc_json or args.drc_rpt)
+    if not erc_requested and not drc_requested:
+        erc_requested = drc_requested = True
+
     if args.erc_json and args.erc_json.exists():
         erc = parse_erc_json(args.erc_json)
     elif args.erc_rpt and args.erc_rpt.exists():
@@ -582,15 +676,20 @@ def main() -> int:
     elif args.drc_rpt and args.drc_rpt.exists():
         drc = _parse_rpt(args.drc_rpt, "DRC")
 
-    html_doc = render_html(erc, drc, args.pcb_image)
+    html_doc = render_html(erc, drc, args.pcb_image,
+                           show_erc=erc_requested, show_drc=drc_requested,
+                           erc_rpt=args.erc_rpt, erc_json=args.erc_json,
+                           drc_rpt=args.drc_rpt, drc_json=args.drc_json,
+                           output_path=args.output)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(html_doc, encoding="utf-8")
 
     print(f"Wrote {args.output} "
           f"(ERC: {len(erc)} entries, DRC: {len(drc)} entries)")
 
-    fail = any(v.severity == "error" for v in erc + drc)
-    return 1 if fail else 0
+    fail_erc = erc_requested and any(v.severity == "error" for v in erc)
+    fail_drc = drc_requested and any(v.severity == "error" for v in drc)
+    return 1 if (fail_erc or fail_drc) else 0
 
 
 if __name__ == "__main__":

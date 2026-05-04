@@ -56,6 +56,10 @@ production/
 *-drc.html
 error-report.html
 
+# HTML/ is the CI-published browse-from-repo result tree. The patterns
+# above would otherwise hide its erc-erc.html / drc-drc.html / etc.
+!HTML/**
+
 # Freerouting work files
 freerouting.dsn
 *.ses
@@ -70,6 +74,7 @@ desktop.ini
 .idea/
 .vscode/
 *.code-workspace
+.claude/
 
 # Python (for the error report script)
 __pycache__/

@@ -1,0 +1,20 @@
+# ============================================================================
+# Preflight: ERC report
+# ----------------------------------------------------------------------------
+# Generates HTML + RPT + JSON ERC reports. JSON is consumed by
+# generate_error_report.py to build the gating error report.
+# ============================================================================
+kibot:
+  version: 1
+
+preflight:
+  erc:
+    dir: '@DIR@'
+    category: '@DIR@'
+    format: 'HTML, RPT, JSON'
+    output: 'erc-%i%I%v.%x'
+    warnings_as_errors: false
+
+...
+definitions:
+  DIR: reports
