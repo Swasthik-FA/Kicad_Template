@@ -169,28 +169,19 @@ jobs:
         run: |
           set +e
           # The navigate_results page links to erc-erc.{html,rpt,json} and
-          # drc-drc.{html,rpt,json}. Build proper standalone report pages
-          # (with download buttons + tabular violations + raw .rpt) and
-          # alias the .rpt/.json so the navigate links resolve to real
-          # downloadable files.
-          mkdir -p output/reports
-          for stem in erc drc; do
-            for ext in rpt json; do
-              src="output/reports/${stem}.${ext}"
-              dst="output/reports/${stem}-${stem}.${ext}"
-              if [ -f "$src" ]; then
-                cp -f "$src" "$dst"
-                echo "aliased: $src -> $dst"
-              fi
+          # drc-drc.{html,rpt,json}. KiBot's preflights don't reliably emit
+          # those filenames in this image, so create aliases from the
+          # kicad-cli outputs + the styled error-report.html.
+          if [ -d output/reports ]; then
+            for stem in erc drc; do
+              for ext in rpt json; do
+                src="output/reports/${stem}.${ext}"
+                dst="output/reports/${stem}-${stem}.${ext}"
+                [ -f "$src" ] && [ ! -f "$dst" ] && cp -f "$src" "$dst"
+              done
+              [ -f output/error-report.html ] && cp -f output/error-report.html "output/reports/${stem}-${stem}.html"
             done
-            python3 config/generate_report_page.py \
-              --kind "${stem}" \
-              --rpt   "output/reports/${stem}.rpt" \
-              --json  "output/reports/${stem}.json" \
-              --output "output/reports/${stem}-${stem}.html" \
-              --project "${KICAD_PROJECT}" \
-              || echo "warn: generate_report_page.py failed for ${stem}"
-          done
+          fi
 
           # Mirror the entire KiBot output tree under HTML/ so the
           # navigate_results webpage's relative links (../3d/, ../reports/,
