@@ -130,12 +130,14 @@ body {
     /* Base canvas */
     background-color: var(--bg);
 
-    /* Mesh-gradient: three soft radial blobs over a dark base.
+    /* Mesh-gradient: five vivid radial blobs over a dark base.
        Fixed attachment so they don't scroll with the content. */
     background-image:
-        radial-gradient(900px 600px at 12% -10%, rgba(99, 102, 241, 0.18), transparent 60%),
-        radial-gradient(700px 500px at 95% 0%,  rgba(56, 189, 248, 0.12), transparent 65%),
-        radial-gradient(800px 600px at 50% 110%, rgba(168, 85, 247, 0.14), transparent 60%);
+        radial-gradient(820px 620px at  8% -12%, rgba(99, 102, 241, 0.42), transparent 60%),
+        radial-gradient(680px 520px at 96%  -4%, rgba(14, 165, 233, 0.32), transparent 65%),
+        radial-gradient(720px 580px at 88% 105%, rgba(236,  72, 153, 0.28), transparent 62%),
+        radial-gradient(760px 600px at  4% 110%, rgba(168,  85, 247, 0.34), transparent 60%),
+        radial-gradient(900px 700px at 50%  50%, rgba( 45, 212, 191, 0.10), transparent 70%);
     background-attachment: fixed;
     background-repeat: no-repeat;
 }
@@ -143,9 +145,10 @@ body {
 body.light-mode {
     background-color: var(--l-bg);
     background-image:
-        radial-gradient(900px 600px at 12% -10%, rgba(99, 102, 241, 0.10), transparent 60%),
-        radial-gradient(700px 500px at 95% 0%,  rgba(14, 165, 233, 0.08), transparent 65%),
-        radial-gradient(800px 600px at 50% 110%, rgba(168, 85, 247, 0.08), transparent 60%);
+        radial-gradient(820px 620px at  8% -12%, rgba(99, 102, 241, 0.18), transparent 60%),
+        radial-gradient(680px 520px at 96%  -4%, rgba(14, 165, 233, 0.16), transparent 65%),
+        radial-gradient(720px 580px at 88% 105%, rgba(236,  72, 153, 0.14), transparent 62%),
+        radial-gradient(760px 600px at  4% 110%, rgba(168,  85, 247, 0.16), transparent 60%);
 }
 
 ::selection { background: var(--accent-soft); color: var(--text); }
@@ -308,28 +311,39 @@ button { font-size: 18px; margin: 0 4px; }
     margin-right: auto;
 }
 
-/* Section header — bold, generous whitespace, with a coloured stripe.
+/* Section header — bold, generous whitespace, gradient-coloured.
    Accent colour is set per category via .output-virtual-box[id^=...] below. */
 .output-comment {
-    font-size: 1.45rem;
-    font-weight: 700;
-    color: var(--text);
-    margin: 56px 0 22px;
-    letter-spacing: -0.02em;
+    font-size: 1.55rem;
+    font-weight: 800;
+    margin: 56px 0 24px;
+    letter-spacing: -0.025em;
     text-align: left;
     position: relative;
-    padding-left: 18px;
+    padding-left: 22px;
     text-transform: capitalize;
+
+    /* Gradient text fill — accent → accent-strong → text */
+    background-image: linear-gradient(
+        90deg,
+        var(--accent) 0%,
+        var(--accent-strong) 35%,
+        var(--text) 100%
+    );
+    -webkit-background-clip: text;
+            background-clip: text;
+    -webkit-text-fill-color: transparent;
+            color: transparent;
 }
 .output-comment::before {
     content: "";
     position: absolute;
     left: 0; top: 50%;
     transform: translateY(-50%);
-    width: 5px; height: 26px;
+    width: 6px; height: 30px;
     border-radius: 999px;
-    background: var(--accent);
-    box-shadow: 0 0 16px var(--accent-soft);
+    background: linear-gradient(180deg, var(--accent), var(--accent-strong));
+    box-shadow: 0 0 22px var(--accent), 0 0 6px var(--accent);
 }
 
 .generator {
@@ -354,7 +368,11 @@ button { font-size: 18px; margin: 0 4px; }
 
 .category-box, .output-box {
     position: relative;
-    background: var(--surface);
+    background:
+        linear-gradient(135deg,
+            color-mix(in srgb, var(--accent) 8%, transparent) 0%,
+            transparent 55%),
+        var(--surface);
     backdrop-filter: saturate(180%) blur(var(--blur));
     -webkit-backdrop-filter: saturate(180%) blur(var(--blur));
     border: 1px solid var(--border);
@@ -378,17 +396,43 @@ button { font-size: 18px; margin: 0 4px; }
     isolation: isolate;
 }
 
-/* Subtle inner highlight (top edge gloss) */
+/* Animated conic-gradient border — visible on hover only.
+   We layer a slightly larger gradient behind the card and mask it so only
+   a thin ring shows through. */
 .category-box::before, .output-box::before {
     content: "";
     position: absolute;
-    inset: 0;
+    inset: -1px;
     border-radius: inherit;
     pointer-events: none;
-    background: linear-gradient(180deg,
-        rgba(255,255,255,.05) 0%,
-        rgba(255,255,255,0) 22%);
     z-index: 0;
+    background:
+        linear-gradient(180deg, rgba(255,255,255,.06) 0%, rgba(255,255,255,0) 22%),
+        conic-gradient(from var(--ring-angle, 0deg),
+            var(--accent),
+            var(--accent-strong),
+            transparent 35%,
+            transparent 65%,
+            var(--accent-strong),
+            var(--accent));
+    -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    padding: 1px;
+    opacity: 0;
+    transition: opacity var(--t-base);
+}
+@property --ring-angle {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: false;
+}
+@keyframes ring-spin { to { --ring-angle: 360deg; } }
+.category-box:hover::before, .output-box:hover::before {
+    opacity: 1;
+    animation: ring-spin 6s linear infinite;
 }
 
 /* Category accent dot — top-right, matches the section colour */
@@ -413,9 +457,12 @@ button { font-size: 18px; margin: 0 4px; }
 }
 
 .category-box:hover, .output-box:hover {
-    transform: translateY(-4px);
-    border-color: var(--accent);
-    box-shadow: var(--shadow-3);
+    transform: translateY(-5px);
+    border-color: transparent;
+    box-shadow:
+        var(--shadow-3),
+        0 0 0 1px var(--accent-soft),
+        0 16px 48px -12px var(--accent);
 }
 
 .category-box img, .output-box img {
