@@ -69,25 +69,6 @@ jobs:
             full
 
       # ----------------------------------------------------------------------
-      # Interactive 3D model. `kicad-cli pcb export glb` produces a
-      # binary glTF that the navigate_3d page embeds via Google's
-      # <model-viewer> web component. The publish step below patches
-      # the navigate_3d.html to inject the viewer.
-      # ----------------------------------------------------------------------
-      - name: Export GLB for in-browser 3D viewer
-        continue-on-error: true
-        run: |
-          set +e
-          mkdir -p output/3d
-          PCB="${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb"
-          kicad-cli pcb export glb \
-            --subst-models \
-            --include-tracks --include-zones \
-            -o "output/3d/${KICAD_PROJECT}.glb" \
-            "${PCB}" || true
-          ls -la output/3d/ || true
-
-      # ----------------------------------------------------------------------
       # Count violations — purely informational. Drives a friendly summary,
       # NOT a merge gate. The job never exits non-zero based on this.
       # ----------------------------------------------------------------------
@@ -200,48 +181,6 @@ jobs:
               if new != s:
                   nav.write_text(new, encoding="utf-8")
                   print(f"stripped rpt/json tiles from {nav}")
-          PY
-
-          # Inject an interactive <model-viewer> panel at the top of
-          # navigate_3d.html so the GLB exported above renders in-browser.
-          # Requires the model-viewer JS module loaded in <head>.
-          python3 - <<'PY' || true
-          import os, pathlib, re
-          project = os.environ.get("KICAD_PROJECT", "")
-          glb_rel = f"../3d/{project}.glb"
-          for nav in pathlib.Path("output").rglob("*-navigate_3d.html"):
-              s = nav.read_text(encoding="utf-8")
-              if "model-viewer" in s:
-                  continue  # already patched
-              script_tag = (
-                  '<script type="module" '
-                  'src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4.0.0/'
-                  'dist/model-viewer.min.js"></script>\n'
-              )
-              if "</head>" in s:
-                  s = s.replace("</head>", script_tag + "</head>", 1)
-              viewer_block = (
-                  '<div class="output-virtual-box" id="live_3d">\n'
-                  '<div class="output-comment">Interactive 3D model</div>\n'
-                  '<div class="items-container">\n'
-                  '<model-viewer '
-                  f'src="{glb_rel}" alt="PCB 3D model" '
-                  'camera-controls touch-action="pan-y" auto-rotate '
-                  'shadow-intensity="1" exposure="1.1" '
-                  'environment-image="neutral" '
-                  'style="width:100%; height:600px; background:#1F2937; '
-                  'border-radius:8px; display:block;">'
-                  '<div slot="poster" '
-                  'style="display:flex;align-items:center;justify-content:center;'
-                  'height:100%;color:#9CA3AF;">Loading 3D model…</div>'
-                  '</model-viewer>\n'
-                  '</div>\n'
-                  '</div>\n'
-              )
-              s = s.replace('<div id="main">',
-                            '<div id="main">\n' + viewer_block, 1)
-              nav.write_text(s, encoding="utf-8")
-              print(f"injected <model-viewer> into {nav}")
           PY
 
           # Mirror the entire KiBot output tree under HTML/ so the
