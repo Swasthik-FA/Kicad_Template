@@ -6,6 +6,7 @@
  <link rel="stylesheet" href="styles.css">
  <link rel="icon" href="favicon.ico">
  <script src="markdown-it.min.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4.0.0/dist/model-viewer.min.js"></script>
 </head>
 <body>
 
@@ -112,6 +113,13 @@
         </div>
 </div>
 <div id="main">
+<div class="output-virtual-box" id="live_3d">
+<div class="output-comment">3D Viewer</div>
+<div class="items-container" style="grid-template-columns: 1fr;">
+<model-viewer src="../3d/Nano-Board-rev-2.glb" alt="Interactive 3D PCB model" camera-controls touch-action="pan-y" shadow-intensity="1" exposure="1.1" environment-image="neutral" interaction-prompt="auto" style="width:100%; height:clamp(360px, 70vh, 720px); background:linear-gradient(135deg,#0B0F19,#161C2D); border-radius:16px; display:block; grid-column: 1 / -1;"><div slot="poster" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#94A0B8;font-family:Inter,sans-serif;text-align:center;padding:24px;background:linear-gradient(135deg,#0B0F19,#161C2D);border-radius:16px;"><div style="font-size:16px;font-weight:600;color:#E6E9F2;margin-bottom:8px;">3D Viewer</div><div style="font-size:13px;line-height:1.6;max-width:520px;">Loading the PCB model… If this stays, the page is being served over <code style="background:#1B2235;padding:2px 6px;border-radius:4px;font-family:ui-monospace,Menlo,monospace;">file://</code>; open it via GitHub Pages or run <code style="background:#1B2235;padding:2px 6px;border-radius:4px;font-family:ui-monospace,Menlo,monospace;">python -m http.server</code> from the repo root.</div></div></model-viewer>
+</div>
+</div>
+
 <div class="items-container">
 <div>
         <div class="category-box" onclick="location.href='Nano-Board-rev-2-navigate_reports.html'">
