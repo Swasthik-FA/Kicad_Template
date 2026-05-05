@@ -451,7 +451,26 @@ jobs:
             exit 0
           fi
           git commit -m "ci: refresh 3D PCB renders and README repo name [skip ci]"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+
+          # Push, with pull-rebase retry to handle the race where another
+          # workflow run (or a manual push) committed to main while we
+          # were generating artifacts. The auto-commit only changes
+          # HTML/ and README.md — both safe to rebase.
+          for attempt in 1 2 3 4 5; do
+            if git push origin "HEAD:${GITHUB_REF_NAME}"; then
+              echo "Push succeeded on attempt ${attempt}."
+              exit 0
+            fi
+            echo "Push rejected on attempt ${attempt}; pulling --rebase and retrying."
+            git fetch origin "${GITHUB_REF_NAME}"
+            # rebase onto the latest tip; if there's a conflict in HTML/
+            # we prefer ours (the freshly regenerated tree).
+            git -c rerere.enabled=false rebase \
+                --strategy=recursive --strategy-option=ours \
+                "origin/${GITHUB_REF_NAME}" || git rebase --abort || true
+          done
+          echo "ERROR: failed to push refreshed HTML/ after 5 attempts."
+          exit 1
 
       - name: Upload visual preview artifact
         if: always()
