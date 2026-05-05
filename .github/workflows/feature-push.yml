@@ -1,21 +1,29 @@
 # ============================================================================
-# Stage 1 — Feature branch push (RELAXED, never blocks)
+# Build artifacts on every push to main
 # ----------------------------------------------------------------------------
-# Trigger:  any push to a `feature/**` branch.
-# Purpose:  early-warning ERC/DRC + visual previews so the engineer can see
-#           issues immediately. NOTHING here ever fails the workflow —
-#           feature branches push freely. Issues only become merge-blockers
-#           at Stage 2 (PR → dev).
+# Trigger:  any push to `main` that touches the design or pipeline.
+# Purpose:  regenerate the full output set (ERC/DRC reports, schematic
+#           PDF, 3D PNGs + GLB, iBOM, gerbers, drills, navigate page,
+#           themed HTML, dedicated 3D viewer page) and commit the
+#           refreshed HTML/ tree back as a `[skip ci]` commit. Never
+#           fails the workflow on ERC/DRC severity — informational only
+#           for solo work on main.
 # Outputs:
-#   - error-report.html       (always — green when clean, red with details when not)
-#   - schematic PDF, 3 × 3D PNG renders, interactive HTML BOM
+#   - HTML/                   committed back into the repo (Pages source)
+#   - error-report.html       inside HTML/
+#   - schematic PDF, 4 × 3D PNG renders, GLB, interactive HTML BOM
 # ============================================================================
-name: Feature push — visual preview (relaxed ERC/DRC)
+name: Build artifacts on main
 
 on:
   push:
-    branches:
-      - 'feature/**'
+    branches: [main]
+    paths:
+      - 'hardware/**'
+      - 'config/**'
+      - 'scripts/**'
+      - '.github/workflows/feature-push.yml'
+  workflow_dispatch:
 
 env:
   KICAD_PROJECT_DIR: hardware
