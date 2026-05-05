@@ -6,7 +6,6 @@
  <link rel="stylesheet" href="styles.css">
  <link rel="icon" href="favicon.ico">
  <script src="markdown-it.min.js"></script>
-<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4.0.0/dist/model-viewer.min.js"></script>
 </head>
 <body>
 
@@ -124,14 +123,61 @@
         </div>
 </div>
 <div id="main">
-<div class="output-virtual-box" id="live_3d">
+<div class="output-virtual-box" id="open-3d-viewer">
 <div class="output-comment">3D Viewer</div>
-<div class="items-container" style="grid-template-columns: 1fr;">
-<model-viewer src="../3d/Nano-Board-rev-2.glb" alt="Interactive 3D PCB model" camera-controls touch-action="pan-y" shadow-intensity="1" exposure="1.1" environment-image="neutral" interaction-prompt="auto" style="width:100%; height:clamp(360px, 70vh, 720px); background:linear-gradient(135deg,#0B0F19,#161C2D); border-radius:16px; display:block; grid-column: 1 / -1;"><div slot="poster" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#94A0B8;font-family:Inter,sans-serif;text-align:center;padding:24px;background:linear-gradient(135deg,#0B0F19,#161C2D);border-radius:16px;"><div style="font-size:16px;font-weight:600;color:#E6E9F2;margin-bottom:8px;">3D Viewer</div><div style="font-size:13px;line-height:1.6;max-width:520px;">Loading the PCB model… If this stays, the page is being served over <code style="background:#1B2235;padding:2px 6px;border-radius:4px;font-family:ui-monospace,Menlo,monospace;">file://</code>; open it via GitHub Pages or run <code style="background:#1B2235;padding:2px 6px;border-radius:4px;font-family:ui-monospace,Menlo,monospace;">python -m http.server</code> from the repo root.</div></div></model-viewer>
+<div class="items-container" style="grid-template-columns: 1fr; place-items: center;">
+<a href="https://swasthik-fa.github.io/Kicad_Template/3d-viewer.html" target="_blank" rel="noopener noreferrer" style="grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:48px 32px;width:100%;background:linear-gradient(135deg,rgba(99,102,241,0.10) 0%, rgba(22,28,45,0.55) 60%);border:1px solid rgba(255,255,255,0.10);border-radius:18px;text-decoration:none;color:#E6E9F2;transition:transform .25s, border-color .25s, box-shadow .25s;" onmouseover="this.style.transform=&quot;translateY(-4px)&quot;;this.style.borderColor=&quot;#818CF8&quot;;this.style.boxShadow=&quot;0 20px 40px -12px rgba(99,102,241,.45)&quot;;" onmouseout="this.style.transform=&quot;translateY(0)&quot;;this.style.borderColor=&quot;rgba(255,255,255,0.10)&quot;;this.style.boxShadow=&quot;none&quot;;"><div style="display:flex;align-items:center;justify-content:center;width:72px;height:72px;border-radius:18px;background:linear-gradient(135deg,#6366F1,#A78BFA);color:#fff;box-shadow:0 8px 24px rgba(99,102,241,.40);"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21 16-9 5-9-5V8l9-5 9 5v8z"/><path d="M3.3 7.5 12 12.5l8.7-5"/><path d="M12 22V12.5"/></svg></div><div style="text-align:center;"><div style="font-size:1.05rem;font-weight:700;letter-spacing:-0.01em;margin-bottom:4px;">Open Interactive 3D Viewer</div><div style="font-size:13px;color:#94A0B8;line-height:1.5;max-width:420px;">Rotate, zoom, and pan the live PCB model. Opens in a new tab on GitHub Pages.</div></div><div style="display:inline-flex;align-items:center;padding:10px 18px;border-radius:999px;background:rgba(99,102,241,.18);color:#A5B4FC;font-size:13px;font-weight:600;letter-spacing:.01em;">Launch viewer<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-left:6px;"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg></div></a>
 </div>
 </div>
+
+<div class="output-virtual-box" id="png_3d_top">
+<div class="output-comment">3D viewer PCB render (top)</div>
+<div class="items-container">
+
+        <div class="output-box wide" onclick="location.href='../3d/Nano-Board-rev-2-3d-top.png'">
+            <img src="images/cat_png_3d_top_Nano-Board-rev-2-3d-top.png" alt="Nano-Board-rev-2-3d-top.png" width="512" height="218">
+            <p class="filename">Nano-Board-rev-2-3d-top.png</p>
+            <p class="output-name">png_3d_top</p>
+        </div>
 </div>
 </div>
+<div class="output-virtual-box" id="png_3d_bottom">
+<div class="output-comment">3D viewer PCB render (bottom)</div>
+<div class="items-container">
+
+        <div class="output-box wide" onclick="location.href='../3d/Nano-Board-rev-2-3d-bottom.png'">
+            <img src="images/cat_png_3d_bottom_Nano-Board-rev-2-3d-bottom.png" alt="Nano-Board-rev-2-3d-bottom.png" width="512" height="216">
+            <p class="filename">Nano-Board-rev-2-3d-bottom.png</p>
+            <p class="output-name">png_3d_bottom</p>
+        </div>
+</div>
+</div>
+<div class="output-virtual-box" id="png_3d_angled_top">
+<div class="output-comment">3D viewer PCB render (angled isometric, top)</div>
+<div class="items-container">
+
+        <div class="output-box wide" onclick="location.href='../3d/Nano-Board-rev-2-3d-angled-top.png'">
+            <img src="images/cat_png_3d_angled_top_Nano-Board-rev-2-3d-angled-top.png" alt="Nano-Board-rev-2-3d-angled-top.png" width="512" height="242">
+            <p class="filename">Nano-Board-rev-2-3d-angled-top.png</p>
+            <p class="output-name">png_3d_angled_top</p>
+        </div>
+</div>
+</div>
+<div class="output-virtual-box" id="png_3d_angled_bottom">
+<div class="output-comment">3D viewer PCB render (angled isometric, bottom)</div>
+<div class="items-container">
+
+        <div class="output-box wide" onclick="location.href='../3d/Nano-Board-rev-2-3d-angled-bottom.png'">
+            <img src="images/cat_png_3d_angled_bottom_Nano-Board-rev-2-3d-angled-bottom.png" alt="Nano-Board-rev-2-3d-angled-bottom.png" width="512" height="246">
+            <p class="filename">Nano-Board-rev-2-3d-angled-bottom.png</p>
+            <p class="output-name">png_3d_angled_bottom</p>
+        </div>
+</div>
+</div>
+<div class="output-virtual-box" id="step">
+<div class="output-comment">Download STEP</div>
+<div class="items-container">
+<a class="output-box step-download" href="../3d/Nano-Board-rev-2.step" download="Nano-Board-rev-2.step" style="text-decoration:none;cursor:pointer;"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin:8px 0 14px;color:#60A5FA;"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg><p class="filename">Nano-Board-rev-2.step</p><p class="output-name">Click to download</p></a>
 </div>
 </div>
 </div>
