@@ -69,22 +69,21 @@ jobs:
             full
 
       # ----------------------------------------------------------------------
-      # Interactive 3D model. `kicad-cli pcb export glb` produces a binary
-      # glTF that the navigate_3d page embeds via Google's <model-viewer>
-      # web component (orbit + zoom + pinch). Requires HTTP(S); see the
-      # injected fallback message for how to view locally.
+      # Build a browser-ready GLB so the navigate_3d page can show the
+      # board interactively via <model-viewer>. The conversion script is
+      # a thin wrapper around `kicad-cli pcb export glb`. Output lands at
+      # HTML/3d/<project>.glb but we mirror it under output/3d/ first so
+      # the publish step's `cp -rf output/. HTML/` picks it up alongside
+      # everything else.
       # ----------------------------------------------------------------------
-      - name: Export GLB for in-browser 3D viewer
+      - name: Convert PCB to GLB for in-browser 3D viewer
         continue-on-error: true
         run: |
           set +e
           mkdir -p output/3d
-          PCB="${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb"
-          kicad-cli pcb export glb \
-            --subst-models \
-            --include-tracks --include-zones \
-            -o "output/3d/${KICAD_PROJECT}.glb" \
-            "${PCB}" || true
+          python3 scripts/convert_to_glb.py \
+            --pcb "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb" \
+            --output "output/3d/${KICAD_PROJECT}.glb" || true
           ls -la output/3d/ || true
 
       # ----------------------------------------------------------------------
@@ -202,72 +201,131 @@ jobs:
                   print(f"stripped rpt/json tiles from {nav}")
           PY
 
-          # Inject an interactive <model-viewer> at the top of the 3D
-          # navigate page, and convert the auto-generated .step tile into
-          # a clean "Download STEP" button. The model-viewer needs HTTP
-          # (ES modules are blocked over file://); the fallback message
-          # tells the user how to serve the page locally.
+          # Build a dedicated full-page 3D viewer at output/3d-viewer.html
+          # (so the GitHub Pages URL https://<owner>.github.io/<repo>/3d-viewer.html
+          # opens directly into the viewer), and inject a styled "Open
+          # Interactive 3D Viewer" button into the navigate_3d page that
+          # opens that URL in a new tab. The button replaces what used
+          # to be an inline <model-viewer> embed (which couldn't load
+          # over file://). Also replaces the auto-generated .step tile
+          # with a "Download STEP" button.
           python3 - <<'PY' || true
-          import os, pathlib, re
+          import os, pathlib, re, html
           project = os.environ.get("KICAD_PROJECT", "")
+          repo = os.environ.get("GITHUB_REPOSITORY", "")  # "owner/repo"
+          owner, repo_name = (repo.split("/", 1) + [""])[:2] if repo else ("", "")
+          # GitHub Pages URLs use lowercase owner.
+          pages_origin = f"https://{owner.lower()}.github.io/{repo_name}" if owner and repo_name else ""
+          viewer_url   = f"{pages_origin}/3d-viewer.html" if pages_origin else "../3d-viewer.html"
+
           glb_rel = f"../3d/{project}.glb"
           step_rel = f"../3d/{project}.step"
+
+          # 0. Render config/web/3d-viewer.html template -> output/3d-viewer.html
+          tpl = pathlib.Path("config/web/3d-viewer.html")
+          if tpl.exists():
+              t = tpl.read_text(encoding="utf-8")
+              # The viewer page lives at HTML root; the GLB is at HTML/3d/.
+              t = (t.replace("{{TITLE}}", html.escape(project))
+                    .replace("{{GLB_URL}}", f"3d/{project}.glb"))
+              out = pathlib.Path("output/3d-viewer.html")
+              out.write_text(t, encoding="utf-8")
+              print(f"wrote {out}")
+          # Rename the landing-page "3d" category tile to "3D Viewer"
+          # so the entry point is labeled clearly. The tile's link
+          # already targets navigate_3d.html, which on GitHub Pages
+          # serves the live <model-viewer>.
+          for landing in pathlib.Path("output").rglob("*-navigate.html"):
+              t = landing.read_text(encoding="utf-8")
+              t2 = re.sub(
+                  r'(category-title">)3d(</p>)',
+                  r'\g<1>3D Viewer\g<2>',
+                  t, count=1,
+              )
+              if t2 != t:
+                  landing.write_text(t2, encoding="utf-8")
+                  print(f"renamed 3d tile -> 3D Viewer in {landing}")
+
+          # The interactive viewer goes only on the dedicated 3D page.
           for nav in pathlib.Path("output").rglob("*-navigate_3d.html"):
               s = nav.read_text(encoding="utf-8")
 
-              # 1. Inject script tag + viewer block (idempotent)
-              if "model-viewer" not in s:
-                  script_tag = (
-                      '<script type="module" '
-                      'src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4.0.0/'
-                      'dist/model-viewer.min.js"></script>\n'
+              # 1. Inject a "Open Interactive 3D Viewer" button at the
+              # top of the 3D page. Idempotent (skip if already there).
+              if "open-3d-viewer" not in s:
+                  cube = (
+                      '<svg viewBox="0 0 24 24" width="22" height="22" '
+                      'fill="none" stroke="currentColor" stroke-width="1.7" '
+                      'stroke-linecap="round" stroke-linejoin="round" '
+                      'aria-hidden="true">'
+                      '<path d="m21 16-9 5-9-5V8l9-5 9 5v8z"/>'
+                      '<path d="M3.3 7.5 12 12.5l8.7-5"/>'
+                      '<path d="M12 22V12.5"/>'
+                      '</svg>'
                   )
-                  if "</head>" in s:
-                      s = s.replace("</head>", script_tag + "</head>", 1)
+                  arrow = (
+                      '<svg viewBox="0 0 24 24" width="16" height="16" '
+                      'fill="none" stroke="currentColor" stroke-width="2" '
+                      'stroke-linecap="round" stroke-linejoin="round" '
+                      'aria-hidden="true" style="margin-left:6px;">'
+                      '<path d="M7 17 17 7"/>'
+                      '<path d="M8 7h9v9"/>'
+                      '</svg>'
+                  )
                   viewer_block = (
-                      '<div class="output-virtual-box" id="live_3d">\n'
-                      '<div class="output-comment">Interactive 3D model</div>\n'
+                      '<div class="output-virtual-box" id="open-3d-viewer">\n'
+                      '<div class="output-comment">3D Viewer</div>\n'
                       '<div class="items-container" '
-                      'style="grid-template-columns: 1fr;">\n'
-                      '<model-viewer '
-                      f'src="{glb_rel}" alt="PCB 3D model" '
-                      'camera-controls touch-action="pan-y" '
-                      'shadow-intensity="1" exposure="1.1" '
-                      'environment-image="neutral" '
-                      'interaction-prompt="auto" '
-                      'style="width:100%; height:640px; '
-                      'background:linear-gradient(135deg,#0B0F19,#161C2D); '
-                      'border-radius:16px; display:block; grid-column: 1 / -1;">'
-                      '<div slot="poster" '
-                      'style="display:flex;flex-direction:column;align-items:center;'
-                      'justify-content:center;height:100%;color:#94A0B8;'
-                      'font-family:Inter,sans-serif;text-align:center;padding:24px;'
-                      'background:linear-gradient(135deg,#0B0F19,#161C2D);'
-                      'border-radius:16px;">'
-                      '<div style="font-size:16px;font-weight:600;color:#E6E9F2;'
-                      'margin-bottom:8px;">Interactive 3D viewer</div>'
-                      '<div style="font-size:13px;line-height:1.6;max-width:480px;">'
-                      'Loading the PCB model… If this message stays, you opened '
-                      'this page from disk (file://). Serve it over HTTP — for '
-                      'example, run <code style="background:#1B2235;padding:2px 6px;'
-                      'border-radius:4px;font-family:ui-monospace,Menlo,monospace;">'
-                      'python -m http.server</code> from the repo root, then open '
-                      '<code style="background:#1B2235;padding:2px 6px;'
-                      'border-radius:4px;font-family:ui-monospace,Menlo,monospace;">'
-                      'http://localhost:8000/HTML/HTML/'
-                      f'{project}-navigate_3d.html</code>.'
+                      'style="grid-template-columns: 1fr; place-items: center;">\n'
+                      f'<a href="{html.escape(viewer_url)}" target="_blank" '
+                      'rel="noopener noreferrer" '
+                      'style="grid-column:1/-1;display:flex;flex-direction:column;'
+                      'align-items:center;justify-content:center;gap:18px;'
+                      'padding:48px 32px;width:100%;'
+                      'background:linear-gradient(135deg,'
+                      'rgba(99,102,241,0.10) 0%, rgba(22,28,45,0.55) 60%);'
+                      'border:1px solid rgba(255,255,255,0.10);'
+                      'border-radius:18px;text-decoration:none;color:#E6E9F2;'
+                      'transition:transform .25s, border-color .25s, box-shadow .25s;" '
+                      'onmouseover="this.style.transform=&quot;translateY(-4px)&quot;;'
+                      'this.style.borderColor=&quot;#818CF8&quot;;'
+                      'this.style.boxShadow=&quot;0 20px 40px -12px rgba(99,102,241,.45)&quot;;" '
+                      'onmouseout="this.style.transform=&quot;translateY(0)&quot;;'
+                      'this.style.borderColor=&quot;rgba(255,255,255,0.10)&quot;;'
+                      'this.style.boxShadow=&quot;none&quot;;">'
+                      '<div style="display:flex;align-items:center;justify-content:center;'
+                      'width:72px;height:72px;border-radius:18px;'
+                      'background:linear-gradient(135deg,#6366F1,#A78BFA);'
+                      'color:#fff;box-shadow:0 8px 24px rgba(99,102,241,.40);">'
+                      f'{cube}'
+                      '</div>'
+                      '<div style="text-align:center;">'
+                      '<div style="font-size:1.05rem;font-weight:700;'
+                      'letter-spacing:-0.01em;margin-bottom:4px;">'
+                      'Open Interactive 3D Viewer'
+                      '</div>'
+                      '<div style="font-size:13px;color:#94A0B8;line-height:1.5;'
+                      'max-width:420px;">'
+                      'Rotate, zoom, and pan the live PCB model. Opens in a '
+                      'new tab on GitHub Pages.'
                       '</div>'
                       '</div>'
-                      '</model-viewer>\n'
+                      '<div style="display:inline-flex;align-items:center;'
+                      'padding:10px 18px;border-radius:999px;'
+                      'background:rgba(99,102,241,.18);color:#A5B4FC;'
+                      'font-size:13px;font-weight:600;letter-spacing:.01em;">'
+                      'Launch viewer'
+                      f'{arrow}'
+                      '</div>'
+                      '</a>\n'
                       '</div>\n'
                       '</div>\n'
                   )
                   s = s.replace('<div id="main">',
                                 '<div id="main">\n' + viewer_block, 1)
 
-              # 2. Replace the auto-generated step tile with a styled
-              # download card (uses the `download` attribute so the file
-              # is always saved instead of opened by the browser).
+              # 2. Replace the auto-generated .step tile with a clean
+              # "Download STEP" button.
               step_block_re = re.compile(
                   r'<div class="output-virtual-box" id="step">[\s\S]*?</div>\s*</div>',
                   re.M,
