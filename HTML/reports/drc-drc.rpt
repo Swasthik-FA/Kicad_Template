@@ -1,46 +1,28 @@
 ** Drc report for Nano-Board-rev-2.kicad_pcb **
-** Created on 2026-05-05T09:19:04+0000 **
+** Created on 2026-05-05T09:25:18+0000 **
 
-** Found 60 DRC violations **
+** Found 47 DRC violations **
 [lib_footprint_mismatch]: Footprint 'LED_0603_1608Metric' does not match copy in library 'LED_SMD'.
     ; warning
     @(115.932328 mm, 114.599164 mm): Footprint D2
 [lib_footprint_mismatch]: Footprint 'R_0402_1005Metric' does not match copy in library 'Resistor_SMD'.
     ; warning
     @(91.56 mm, 112.91 mm): Footprint R11
-[lib_footprint_mismatch]: Footprint 'PinHeader_2x05_P2.54mm_Vertical_SMD' does not match copy in library 'Connector_PinHeader_2.54mm'.
-    ; warning
-    @(177.46065 mm, 125.530295 mm): Footprint J4
 [lib_footprint_mismatch]: Footprint 'C_0402_1005Metric' does not match copy in library 'Capacitor_SMD'.
     ; warning
     @(99.181492 mm, 111.596836 mm): Footprint C20
 [lib_footprint_mismatch]: Footprint 'R_0603_1608Metric' does not match copy in library 'Resistor_SMD'.
     ; warning
     @(92.89 mm, 96.07 mm): Footprint R25
-[lib_footprint_mismatch]: Footprint 'R_0402_1005Metric' does not match copy in library 'Resistor_SMD'.
-    ; warning
-    @(181.758 mm, 99.285 mm): Footprint R17
-[lib_footprint_mismatch]: Footprint 'R_0402_1005Metric' does not match copy in library 'Resistor_SMD'.
-    ; warning
-    @(175.054 mm, 99.301 mm): Footprint R22
 [lib_footprint_mismatch]: Footprint 'C_0402_1005Metric' does not match copy in library 'Capacitor_SMD'.
     ; warning
     @(111.8775 mm, 104.7425 mm): Footprint C7
 [lib_footprint_mismatch]: Footprint 'R_0402_1005Metric' does not match copy in library 'Resistor_SMD'.
     ; warning
     @(96.431 mm, 131.628336 mm): Footprint R16
-[lib_footprint_issues]: The current configuration does not include the footprint library 'newdemo.preety'.
-    ; warning
-    @(177.47 mm, 111.826 mm): Footprint G***
-[lib_footprint_mismatch]: Footprint 'R_0402_1005Metric' does not match copy in library 'Resistor_SMD'.
-    ; warning
-    @(177.453 mm, 99.307 mm): Footprint R20
 [lib_footprint_mismatch]: Footprint 'SOT-23-6' does not match copy in library 'Package_TO_SOT_SMD'.
     ; warning
     @(95.830308 mm, 93.0675 mm): Footprint U4
-[lib_footprint_mismatch]: Footprint 'R_0402_1005Metric' does not match copy in library 'Resistor_SMD'.
-    ; warning
-    @(179.602 mm, 99.288 mm): Footprint R18
 [lib_footprint_issues]: The current configuration does not include the footprint library 'newdemo.preety'.
     ; warning
     @(95.76 mm, 102.08 mm): Footprint G***
@@ -53,12 +35,6 @@
 [lib_footprint_mismatch]: Footprint 'C_0402_1005Metric' does not match copy in library 'Capacitor_SMD'.
     ; warning
     @(110.638 mm, 99.16 mm): Footprint C8
-[lib_footprint_mismatch]: Footprint 'R_0402_1005Metric' does not match copy in library 'Resistor_SMD'.
-    ; warning
-    @(183.023 mm, 99.297 mm): Footprint R23
-[lib_footprint_mismatch]: Footprint 'PinHeader_2x05_P2.54mm_Vertical_SMD' does not match copy in library 'Connector_PinHeader_2.54mm'.
-    ; warning
-    @(163.63365 mm, 111.823295 mm): Footprint J3
 [lib_footprint_mismatch]: Footprint 'LED_0603_1608Metric' does not match copy in library 'LED_SMD'.
     ; warning
     @(105.599308 mm, 95.319164 mm): Footprint D1
@@ -68,9 +44,6 @@
 [lib_footprint_mismatch]: Footprint 'R_0402_1005Metric' does not match copy in library 'Resistor_SMD'.
     ; warning
     @(89.92 mm, 93.52 mm): Footprint R4
-[lib_footprint_mismatch]: Footprint 'R_0402_1005Metric' does not match copy in library 'Resistor_SMD'.
-    ; warning
-    @(176.272 mm, 99.308 mm): Footprint R21
 [lib_footprint_mismatch]: Footprint 'C_0402_1005Metric' does not match copy in library 'Capacitor_SMD'.
     ; warning
     @(84.420411 mm, 96.255411 mm): Footprint C11
@@ -98,15 +71,9 @@
 [lib_footprint_issues]: The current configuration does not include the footprint library 'Footprint'.
     ; warning
     @(95.801492 mm, 112.269856 mm): Footprint U8
-[lib_footprint_issues]: The current configuration does not include the footprint library 'fp'.
-    ; warning
-    @(177.474 mm, 88.678 mm): Footprint J6
 [lib_footprint_mismatch]: Footprint 'R_0402_1005Metric' does not match copy in library 'Resistor_SMD'.
     ; warning
     @(105.630308 mm, 98.6475 mm): Footprint R1
-[lib_footprint_mismatch]: Footprint 'PinHeader_2x05_P2.54mm_Vertical_SMD' does not match copy in library 'Connector_PinHeader_2.54mm'.
-    ; warning
-    @(191.35065 mm, 111.890295 mm): Footprint J5
 [lib_footprint_mismatch]: Footprint 'R_0402_1005Metric' does not match copy in library 'Resistor_SMD'.
     ; warning
     @(94.07 mm, 131.64 mm): Footprint R19
@@ -137,18 +104,12 @@
 [lib_footprint_mismatch]: Footprint 'C_0402_1005Metric' does not match copy in library 'Capacitor_SMD'.
     ; warning
     @(101.206 mm, 118.683336 mm): Footprint C3
-[lib_footprint_issues]: The current configuration does not include the footprint library 'newdemo.preety'.
-    ; warning
-    @(173.252 mm, 83.418 mm): Footprint G***
 [lib_footprint_mismatch]: Footprint 'C_0402_1005Metric' does not match copy in library 'Capacitor_SMD'.
     ; warning
     @(101.231 mm, 123.178336 mm): Footprint C17
 [lib_footprint_mismatch]: Footprint 'R_0402_1005Metric' does not match copy in library 'Resistor_SMD'.
     ; warning
     @(108.620308 mm, 124.1975 mm): Footprint R3
-[lib_footprint_issues]: The current configuration does not include the footprint library 'FPC_CONNECTOR24'.
-    ; warning
-    @(178.776 mm, 119.4055 mm): Footprint U3
 [lib_footprint_mismatch]: Footprint 'LQFP-48_7x7mm_P0.5mm' does not match copy in library 'Package_QFP'.
     ; warning
     @(95.29 mm, 122.13 mm): Footprint U1
