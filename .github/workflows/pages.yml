@@ -1,0 +1,59 @@
+# ============================================================================
+# Deploy HTML/ to GitHub Pages
+# ----------------------------------------------------------------------------
+# Publishes the contents of HTML/ as a static site. Pages serves HTML/
+# as the site root, so HTML/HTML/<x>.html lives at /HTML/<x>.html and
+# HTML/3d-viewer.html lives at /3d-viewer.html.
+#
+# REQUIRED one-time setup per repo (manual):
+#   Settings -> Pages -> Build and deployment -> Source: "GitHub Actions"
+#
+# Triggers:
+#   - push to main / dev (production)
+#   - push to feature/test-pipeline (TEMP, for verifying changes before
+#     merging; remove once the feature branch is merged)
+# ============================================================================
+name: Deploy HTML to GitHub Pages
+
+on:
+  push:
+    # TODO: drop feature/test-pipeline from this list once merged.
+    branches: [main, dev, feature/test-pipeline]
+    paths:
+      - 'HTML/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build and deploy
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload HTML/ as Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: HTML
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
