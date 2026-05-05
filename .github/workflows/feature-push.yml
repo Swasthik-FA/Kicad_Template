@@ -254,6 +254,40 @@ jobs:
                   landing.write_text(t2, encoding="utf-8")
                   print(f"renamed 3d tile -> 3D Viewer in {landing}")
 
+          # Sidebar cleanup. KiBot's auto-generated left menu lists every
+          # output by its raw KiBot name (png_3d_top, png_3d_bottom,
+          # png_3d_angled_top, png_3d_angled_bottom, step). Collapse all
+          # of that into a single "3D Viewer" entry that opens the
+          # dedicated viewer page in a new tab. Applied to EVERY navigate
+          # page since they all share the same sidebar markup.
+          sidebar_re = re.compile(
+              r"(folder-[a-z0-9-]*-navigate-3d[^>]*>\s*)"
+              r"<ul class='navbar-category'>[\s\S]*?</ul>",
+              re.M,
+          )
+          new_3d_items = (
+              "<ul class='navbar-category'>\n"
+              f"   <li><a href='{html.escape(viewer_url)}' "
+              "target='_blank' rel='noopener noreferrer' "
+              "class='navbar-output'>3D Viewer</a></li>\n"
+              " </ul>"
+          )
+          for nav_any in pathlib.Path("output").rglob("*-navigate*.html"):
+              t = nav_any.read_text(encoding="utf-8")
+              t2 = sidebar_re.sub(
+                  lambda m: m.group(1) + new_3d_items, t, count=1
+              )
+              # Also rename the parent folder label "3d" -> "3D Viewer".
+              t2 = re.sub(
+                  r"(<span class='chevron'></span>\s*)3d(\s*</span>)",
+                  r"\g<1>3D Viewer\g<2>",
+                  t2,
+                  count=1,
+              )
+              if t2 != t:
+                  nav_any.write_text(t2, encoding="utf-8")
+                  print(f"sidebar cleaned in {nav_any}")
+
           # The interactive viewer goes only on the dedicated 3D page.
           for nav in pathlib.Path("output").rglob("*-navigate_3d.html"):
               s = nav.read_text(encoding="utf-8")
