@@ -2,14 +2,14 @@
 <!--
   Standalone full-page 3D viewer.
   Substituted at CI publish time:
-    {{TITLE}}      - shown in the title bar and page <title>
+    {{TITLE}}      - shown in the page <title>
     {{GLB_URL}}    - URL to the GLB (relative path from this file)
 -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{{TITLE}} — 3D Viewer</title>
+<title>{{TITLE}} — Interactive 3D Model</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; }
@@ -24,65 +24,41 @@
       radial-gradient(720px 580px at 88% 105%, rgba(236,72,153,0.28), transparent 62%),
       radial-gradient(760px 600px at 4% 110%, rgba(168,85,247,0.34), transparent 60%);
   }
+
+  /* "Interactive 3D Model" heading — accent bar + gradient text fill,
+     mirrors the .output-comment style from the navigate page so the
+     two pages feel continuous. */
+  .heading {
+    position: fixed; top: 22px; left: 28px;
+    z-index: 10; pointer-events: none;
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    padding-left: 18px;
+    line-height: 1.2;
+    background-image: linear-gradient(90deg, #818CF8 0%, #6366F1 35%, #E6E9F2 100%);
+    -webkit-background-clip: text;
+            background-clip: text;
+    -webkit-text-fill-color: transparent;
+            color: transparent;
+  }
+  .heading::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 50%;
+    transform: translateY(-50%);
+    width: 4px; height: 22px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #818CF8, #6366F1);
+    box-shadow: 0 0 16px rgba(99,102,241,.55), 0 0 4px rgba(99,102,241,.6);
+  }
+
   model-viewer {
     width: 100vw; height: 100vh; display: block;
     background: transparent;
     --poster-color: transparent;
   }
-  .topbar {
-    position: fixed; top: 16px; left: 16px; right: 16px;
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 16px; pointer-events: none; z-index: 10;
-  }
-  .title {
-    pointer-events: auto;
-    background: rgba(22,28,45,0.55);
-    backdrop-filter: blur(22px) saturate(180%);
-    -webkit-backdrop-filter: blur(22px) saturate(180%);
-    border: 1px solid rgba(255,255,255,0.10);
-    border-radius: 14px; padding: 12px 18px;
-    font-size: 14px; font-weight: 600; line-height: 1.3;
-    box-shadow: 0 8px 24px rgba(0,0,0,.30);
-    max-width: calc(100% - 200px);
-  }
-  .title .sub {
-    display: block; font-size: 11px; font-weight: 500;
-    color: #94A0B8; letter-spacing: .06em; text-transform: uppercase;
-    margin-top: 2px;
-  }
-  .actions { display: flex; gap: 8px; pointer-events: auto; }
-  .btn {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 10px 14px;
-    background: rgba(22,28,45,0.55);
-    backdrop-filter: blur(22px) saturate(180%);
-    -webkit-backdrop-filter: blur(22px) saturate(180%);
-    border: 1px solid rgba(255,255,255,0.10);
-    border-radius: 10px; color: #E6E9F2;
-    text-decoration: none; font-size: 13px; font-weight: 500;
-    transition: background .15s, border-color .15s, transform .15s;
-    cursor: pointer;
-  }
-  .btn:hover { background: rgba(30,38,60,0.65); border-color: #6366F1; }
-  .btn:active { transform: scale(.97); }
-  .btn svg { width: 16px; height: 16px; }
-  .help {
-    position: fixed; bottom: 16px; left: 50%;
-    transform: translateX(-50%);
-    background: rgba(22,28,45,0.55);
-    backdrop-filter: blur(22px) saturate(180%);
-    -webkit-backdrop-filter: blur(22px) saturate(180%);
-    border: 1px solid rgba(255,255,255,0.10);
-    border-radius: 999px; padding: 8px 16px;
-    font-size: 12px; color: #94A0B8; pointer-events: none;
-    box-shadow: 0 8px 24px rgba(0,0,0,.30);
-    z-index: 10;
-  }
-  .help kbd {
-    background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px;
-    font-family: ui-monospace, Menlo, monospace; font-size: 11px;
-    color: #E6E9F2; margin: 0 2px;
-  }
+
   .loader, .err {
     position: fixed; inset: 0;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -98,33 +74,10 @@
     animation: spin .9s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
-  @media (max-width: 600px) {
-    .title { max-width: calc(100% - 130px); padding: 10px 14px; font-size: 13px; }
-    .help { display: none; }
-  }
 </style>
 </head>
 <body>
-  <div class="topbar">
-    <div class="title">
-      {{TITLE}}
-      <span class="sub">3D Viewer</span>
-    </div>
-    <div class="actions">
-      <a class="btn" href="HTML/{{TITLE}}-navigate.html"
-         title="Back to project navigation">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="m15 18-6-6 6-6"/>
-        </svg>
-        Back
-      </a>
-    </div>
-  </div>
-
-  <div class="help">
-    <kbd>drag</kbd> rotate · <kbd>scroll</kbd> zoom · <kbd>right-drag</kbd> pan
-  </div>
+  <div class="heading">Interactive 3D Model</div>
 
   <div class="loader" id="loader">
     <div class="spinner"></div>
@@ -157,7 +110,7 @@
       loader.style.opacity = '0';
       setTimeout(function () { loader.style.display = 'none'; }, 350);
     });
-    viewer.addEventListener('error', function (e) {
+    viewer.addEventListener('error', function () {
       loader.style.display = 'none';
       err.style.display = 'flex';
       err.textContent =
@@ -165,7 +118,6 @@
         'the <model-viewer> ES module is blocked. Open it on GitHub Pages ' +
         'or via a local web server (python -m http.server).';
     });
-    // Nudge a fail-message after 25 s if the load event hasn't fired yet
     setTimeout(function () {
       if (loader.style.display !== 'none') {
         err.style.display = 'flex';
