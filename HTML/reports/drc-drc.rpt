@@ -1,5 +1,5 @@
 ** Drc report for Nano-Board-rev-2.kicad_pcb **
-** Created on 2026-05-05T09:11:20+0000 **
+** Created on 2026-05-05T09:17:23+0000 **
 
 ** Found 60 DRC violations **
 [lib_footprint_mismatch]: Footprint 'LED_0603_1608Metric' does not match copy in library 'LED_SMD'.
