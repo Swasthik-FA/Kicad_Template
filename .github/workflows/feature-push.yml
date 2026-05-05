@@ -283,17 +283,35 @@ jobs:
                   s = s.replace('<div id="main">',
                                 '<div id="main">\n' + viewer_block, 1)
 
-              # 2. Strip every other output-virtual-box from the page so
-              # navigate_3d shows ONLY the live 3D viewer (no PNG render
-              # tiles, no STEP download tile, no anything else). The
-              # sidebar still lists those names but their anchors are
-              # no-ops on this page.
-              strip_re = re.compile(
-                  r'\s*<div class="output-virtual-box" id="(?!live_3d)[^"]+">'
-                  r'[\s\S]*?</div>\s*</div>',
+              # 2. Replace the auto-generated .step tile with a clean
+              # "Download STEP" button.
+              step_block_re = re.compile(
+                  r'<div class="output-virtual-box" id="step">[\s\S]*?</div>\s*</div>',
                   re.M,
               )
-              s = strip_re.sub('', s)
+              new_step = (
+                  '<div class="output-virtual-box" id="step">\n'
+                  '<div class="output-comment">Download STEP</div>\n'
+                  '<div class="items-container">\n'
+                  f'<a class="output-box step-download" href="{step_rel}" '
+                  f'download="{project}.step" '
+                  'style="text-decoration:none;cursor:pointer;">'
+                  '<svg width="56" height="56" viewBox="0 0 24 24" fill="none" '
+                  'stroke="currentColor" stroke-width="1.6" stroke-linecap="round" '
+                  'stroke-linejoin="round" style="margin:8px 0 14px;color:#60A5FA;">'
+                  '<path d="M12 3v12"/>'
+                  '<path d="m7 10 5 5 5-5"/>'
+                  '<path d="M5 21h14"/>'
+                  '</svg>'
+                  f'<p class="filename">{project}.step</p>'
+                  '<p class="output-name">Click to download</p>'
+                  '</a>\n'
+                  '</div>\n'
+                  '</div>'
+              )
+              s2, n = step_block_re.subn(new_step, s, count=1)
+              if n:
+                  s = s2
 
               nav.write_text(s, encoding="utf-8")
               print(f"patched {nav}")
