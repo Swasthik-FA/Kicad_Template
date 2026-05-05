@@ -201,36 +201,20 @@ jobs:
                   print(f"stripped rpt/json tiles from {nav}")
           PY
 
-          # Build a dedicated full-page 3D viewer at output/3d-viewer.html
-          # (so the GitHub Pages URL https://<owner>.github.io/<repo>/3d-viewer.html
-          # opens directly into the viewer), and inject a styled "Open
-          # Interactive 3D Viewer" button into the navigate_3d page that
-          # opens that URL in a new tab. The button replaces what used
-          # to be an inline <model-viewer> embed (which couldn't load
-          # over file://). Also replaces the auto-generated .step tile
-          # with a "Download STEP" button.
+          # Inject an interactive <model-viewer> at the top of the 3D
+          # navigate page (loads ../3d/<project>.glb, full responsive,
+          # rotate + zoom + pan), and replace the auto-generated .step
+          # tile with a "Download STEP" button.
+          #
+          # The <model-viewer> web component is loaded as an ES module
+          # from jsDelivr. ES modules require the page to be served
+          # over HTTP(S) — this works on GitHub Pages (or any web
+          # server) but NOT when opening the HTML file from disk.
           python3 - <<'PY' || true
-          import os, pathlib, re, html
+          import os, pathlib, re
           project = os.environ.get("KICAD_PROJECT", "")
-          repo = os.environ.get("GITHUB_REPOSITORY", "")  # "owner/repo"
-          owner, repo_name = (repo.split("/", 1) + [""])[:2] if repo else ("", "")
-          # GitHub Pages URLs use lowercase owner.
-          pages_origin = f"https://{owner.lower()}.github.io/{repo_name}" if owner and repo_name else ""
-          viewer_url   = f"{pages_origin}/3d-viewer.html" if pages_origin else "../3d-viewer.html"
-
           glb_rel = f"../3d/{project}.glb"
           step_rel = f"../3d/{project}.step"
-
-          # 0. Render config/web/3d-viewer.html template -> output/3d-viewer.html
-          tpl = pathlib.Path("config/web/3d-viewer.html")
-          if tpl.exists():
-              t = tpl.read_text(encoding="utf-8")
-              # The viewer page lives at HTML root; the GLB is at HTML/3d/.
-              t = (t.replace("{{TITLE}}", html.escape(project))
-                    .replace("{{GLB_URL}}", f"3d/{project}.glb"))
-              out = pathlib.Path("output/3d-viewer.html")
-              out.write_text(t, encoding="utf-8")
-              print(f"wrote {out}")
           # Rename the landing-page "3d" category tile to "3D Viewer"
           # so the entry point is labeled clearly. The tile's link
           # already targets navigate_3d.html, which on GitHub Pages
@@ -250,74 +234,49 @@ jobs:
           for nav in pathlib.Path("output").rglob("*-navigate_3d.html"):
               s = nav.read_text(encoding="utf-8")
 
-              # 1. Inject a "Open Interactive 3D Viewer" button at the
-              # top of the 3D page. Idempotent (skip if already there).
-              if "open-3d-viewer" not in s:
-                  cube = (
-                      '<svg viewBox="0 0 24 24" width="22" height="22" '
-                      'fill="none" stroke="currentColor" stroke-width="1.7" '
-                      'stroke-linecap="round" stroke-linejoin="round" '
-                      'aria-hidden="true">'
-                      '<path d="m21 16-9 5-9-5V8l9-5 9 5v8z"/>'
-                      '<path d="M3.3 7.5 12 12.5l8.7-5"/>'
-                      '<path d="M12 22V12.5"/>'
-                      '</svg>'
+              # 1. Add the <model-viewer> ES module + interactive viewer
+              # block at the top of the page. Idempotent.
+              if "model-viewer" not in s:
+                  script_tag = (
+                      '<script type="module" '
+                      'src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4.0.0/'
+                      'dist/model-viewer.min.js"></script>\n'
                   )
-                  arrow = (
-                      '<svg viewBox="0 0 24 24" width="16" height="16" '
-                      'fill="none" stroke="currentColor" stroke-width="2" '
-                      'stroke-linecap="round" stroke-linejoin="round" '
-                      'aria-hidden="true" style="margin-left:6px;">'
-                      '<path d="M7 17 17 7"/>'
-                      '<path d="M8 7h9v9"/>'
-                      '</svg>'
-                  )
+                  if "</head>" in s:
+                      s = s.replace("</head>", script_tag + "</head>", 1)
                   viewer_block = (
-                      '<div class="output-virtual-box" id="open-3d-viewer">\n'
+                      '<div class="output-virtual-box" id="live_3d">\n'
                       '<div class="output-comment">3D Viewer</div>\n'
                       '<div class="items-container" '
-                      'style="grid-template-columns: 1fr; place-items: center;">\n'
-                      f'<a href="{html.escape(viewer_url)}" target="_blank" '
-                      'rel="noopener noreferrer" '
-                      'style="grid-column:1/-1;display:flex;flex-direction:column;'
-                      'align-items:center;justify-content:center;gap:18px;'
-                      'padding:48px 32px;width:100%;'
-                      'background:linear-gradient(135deg,'
-                      'rgba(99,102,241,0.10) 0%, rgba(22,28,45,0.55) 60%);'
-                      'border:1px solid rgba(255,255,255,0.10);'
-                      'border-radius:18px;text-decoration:none;color:#E6E9F2;'
-                      'transition:transform .25s, border-color .25s, box-shadow .25s;" '
-                      'onmouseover="this.style.transform=&quot;translateY(-4px)&quot;;'
-                      'this.style.borderColor=&quot;#818CF8&quot;;'
-                      'this.style.boxShadow=&quot;0 20px 40px -12px rgba(99,102,241,.45)&quot;;" '
-                      'onmouseout="this.style.transform=&quot;translateY(0)&quot;;'
-                      'this.style.borderColor=&quot;rgba(255,255,255,0.10)&quot;;'
-                      'this.style.boxShadow=&quot;none&quot;;">'
-                      '<div style="display:flex;align-items:center;justify-content:center;'
-                      'width:72px;height:72px;border-radius:18px;'
-                      'background:linear-gradient(135deg,#6366F1,#A78BFA);'
-                      'color:#fff;box-shadow:0 8px 24px rgba(99,102,241,.40);">'
-                      f'{cube}'
-                      '</div>'
-                      '<div style="text-align:center;">'
-                      '<div style="font-size:1.05rem;font-weight:700;'
-                      'letter-spacing:-0.01em;margin-bottom:4px;">'
-                      'Open Interactive 3D Viewer'
-                      '</div>'
-                      '<div style="font-size:13px;color:#94A0B8;line-height:1.5;'
-                      'max-width:420px;">'
-                      'Rotate, zoom, and pan the live PCB model. Opens in a '
-                      'new tab on GitHub Pages.'
+                      'style="grid-template-columns: 1fr;">\n'
+                      '<model-viewer '
+                      f'src="{glb_rel}" alt="Interactive 3D PCB model" '
+                      'camera-controls touch-action="pan-y" '
+                      'shadow-intensity="1" exposure="1.1" '
+                      'environment-image="neutral" '
+                      'interaction-prompt="auto" '
+                      'style="width:100%; height:clamp(360px, 70vh, 720px); '
+                      'background:linear-gradient(135deg,#0B0F19,#161C2D); '
+                      'border-radius:16px; display:block; grid-column: 1 / -1;">'
+                      '<div slot="poster" '
+                      'style="display:flex;flex-direction:column;align-items:center;'
+                      'justify-content:center;height:100%;color:#94A0B8;'
+                      'font-family:Inter,sans-serif;text-align:center;padding:24px;'
+                      'background:linear-gradient(135deg,#0B0F19,#161C2D);'
+                      'border-radius:16px;">'
+                      '<div style="font-size:16px;font-weight:600;color:#E6E9F2;'
+                      'margin-bottom:8px;">3D Viewer</div>'
+                      '<div style="font-size:13px;line-height:1.6;max-width:520px;">'
+                      'Loading the PCB model… If this stays, the page is being '
+                      'served over <code style="background:#1B2235;padding:2px 6px;'
+                      'border-radius:4px;font-family:ui-monospace,Menlo,monospace;">'
+                      'file://</code>; open it via GitHub Pages or run '
+                      '<code style="background:#1B2235;padding:2px 6px;'
+                      'border-radius:4px;font-family:ui-monospace,Menlo,monospace;">'
+                      'python -m http.server</code> from the repo root.'
                       '</div>'
                       '</div>'
-                      '<div style="display:inline-flex;align-items:center;'
-                      'padding:10px 18px;border-radius:999px;'
-                      'background:rgba(99,102,241,.18);color:#A5B4FC;'
-                      'font-size:13px;font-weight:600;letter-spacing:.01em;">'
-                      'Launch viewer'
-                      f'{arrow}'
-                      '</div>'
-                      '</a>\n'
+                      '</model-viewer>\n'
                       '</div>\n'
                       '</div>\n'
                   )
