@@ -76,7 +76,7 @@ jobs:
       # KiBot going past violations; the gate below counts JSON entries
       # with severity=error.
       # ----------------------------------------------------------------------
-      - name: ERC + DRC via KiBot (visual group)
+      - name: ERC + DRC via KiBot (gate_only group)
         run: |
           set +e
           kibot \
@@ -85,7 +85,7 @@ jobs:
             -e "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_sch" \
             -b "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb" \
             --log "${KIBOT_LOG}" \
-            visual || true
+            gate_only || true
 
       # ----------------------------------------------------------------------
       # Count error-severity violations from the JSON reports.
@@ -123,44 +123,6 @@ jobs:
           PY
 
       # ----------------------------------------------------------------------
-      # Always generate the HTML error report (clean run = green report).
-      # ----------------------------------------------------------------------
-      - name: Generate error report HTML
-        if: always()
-        run: |
-          python3 config/generate_error_report.py \
-            --erc-json output/reports/erc-erc.json \
-            --drc-json output/reports/drc-drc.json \
-            --erc-rpt  output/reports/erc-erc.rpt \
-            --drc-rpt  output/reports/drc-drc.rpt \
-            --output   output/error-report.html
-
-      - name: Upload error report (always)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: error-report
-          path: output/error-report.html
-          retention-days: 14
-          if-no-files-found: warn
-
-      # ----------------------------------------------------------------------
-      # On pass: visual + iBOM artifacts were already produced by the gate
-      # step above (visual group runs preflights + visual outputs together).
-      # We just upload them.
-      # ----------------------------------------------------------------------
-      - name: Upload PR review artifacts (only if gate passes)
-        if: steps.count.outputs.total_errors == '0'
-        uses: actions/upload-artifact@v4
-        with:
-          name: pr-review-${{ github.event.pull_request.number }}
-          path: |
-            output/
-            ${{ env.KIBOT_LOG }}
-          retention-days: 14
-          if-no-files-found: warn
-
-      # ----------------------------------------------------------------------
       # Sticky PR summary: one comment per PR, updated each run. Marker
       # <!-- erc-drc-gate --> lets peter-evans/find-comment locate and
       # rewrite the same comment instead of stacking new ones. Posts on
@@ -191,9 +153,27 @@ jobs:
             | ERC   | ${{ steps.count.outputs.erc_errors }} | ${{ steps.count.outputs.erc_warnings }} |
             | DRC   | ${{ steps.count.outputs.drc_errors }} | ${{ steps.count.outputs.drc_warnings }} |
 
-            Open the [`error-report` artifact ↗](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for the full violations list.${{ steps.count.outputs.total_errors != '0' && '
+            See the [workflow run ↗](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for the raw KiBot logs.${{ steps.count.outputs.total_errors != '0' && '
 
             **Please fix the issues before merging.**' || '' }}
+
+      # ----------------------------------------------------------------------
+      # Enable GitHub auto-merge on the PR. This does NOT merge immediately —
+      # it tells GitHub to merge the PR as soon as all required status checks
+      # pass and review requirements are satisfied. Requires:
+      #   - Repo Settings → General → "Allow auto-merge" enabled
+      #   - "ERC + DRC gate" configured as required check on `dev`
+      # If the gate fails below, this is harmless: auto-merge waits for green.
+      # ----------------------------------------------------------------------
+      - name: Enable auto-merge
+        if: steps.count.outputs.total_errors == '0'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr merge "${{ github.event.pull_request.number }}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --auto --squash || true
 
       - name: Fail job if ERC/DRC errors
         if: steps.count.outputs.total_errors != '0'

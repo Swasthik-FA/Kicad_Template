@@ -17,7 +17,8 @@ name: Build artifacts on main
 
 on:
   push:
-    branches: [main]
+    branches:
+      - 'feature/**'
     paths:
       - 'hardware/**'
       - 'config/**'

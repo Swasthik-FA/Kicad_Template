@@ -126,6 +126,11 @@ groups:
       - html_ibom
       - html_navigate_results
 
+  - name: gate_only
+    # ERC + DRC preflights only. Preflights run regardless of outputs,
+    # so an empty output list gives us a fast gate-only run.
+    outputs: []
+
   - name: schematic_only
     outputs:
       - pdf_schematic
