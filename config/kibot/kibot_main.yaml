@@ -126,11 +126,6 @@ groups:
       - html_ibom
       - html_navigate_results
 
-  - name: schematic_only
-    outputs:
-      - pdf_schematic
-      - csv_bom
-
   - name: full
     outputs:
       - pdf_schematic
