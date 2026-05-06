@@ -58,6 +58,8 @@ def main() -> int:
                     help="Skip copper tracks in the model (smaller file).")
     ap.add_argument("--no-zones", action="store_true",
                     help="Skip filled zones in the model.")
+    ap.add_argument("--with-components", action="store_true",
+                    help="Include component 3D models (heavy). Default is board-only.")
     args = ap.parse_args()
 
     repo_root = Path(__file__).resolve().parent.parent
@@ -81,9 +83,15 @@ def main() -> int:
 
     cmd = [
         "kicad-cli", "pcb", "export", "glb",
-        "--subst-models",
         "-o", str(out),
     ]
+    if args.with_components:
+        cmd.append("--subst-models")
+    else:
+        # Board-only: skip component STEP/VRML models entirely. Yields a
+        # JLCPCB-style bare-board view (green soldermask + copper pads +
+        # silkscreen + tracks) at a tiny fraction of the file size.
+        cmd.append("--board-only")
     if not args.no_tracks:
         cmd.append("--include-tracks")
     if not args.no_zones:
