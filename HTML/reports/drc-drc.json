@@ -1,10 +1,10 @@
 {
     "$schema": "https://schemas.kicad.org/drc.v1.json",
     "coordinate_units": "mm",
-    "date": "2026-05-06T05:03:44+0000",
+    "date": "2026-05-06T05:08:07+0000",
     "kicad_version": "9.0.7",
     "schematic_parity": [],
-    "source": "kibot_acz9sgha.kicad_pcb",
+    "source": "kibot_et3nb_q9.kicad_pcb",
     "unconnected_items": [],
     "violations": [
         {
@@ -16,7 +16,7 @@
                         "x": 0.0,
                         "y": 0.0
                     },
-                    "uuid": "7224aa5d-17a5-4cfe-adef-ccb95e3f8a5b"
+                    "uuid": "90db5e2d-57df-4d37-a1ce-718fa390f62e"
                 }
             ],
             "severity": "error",
