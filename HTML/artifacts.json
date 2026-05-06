@@ -1,0 +1,14 @@
+{
+  "schematic_pdf": "schematic/Nano-Board-rev-2-schematic.pdf",
+  "bom_csv": "bom/Nano-Board-rev-2-bom.csv",
+  "ibom": "bom/Nano-Board-rev-2-ibom.html",
+  "erc_html": "reports/erc-erc.html",
+  "drc_html": "reports/drc-drc.html",
+  "render_top": "3d/Nano-Board-rev-2-3d-top.png",
+  "render_bottom": "3d/Nano-Board-rev-2-3d-bottom.png",
+  "render_iso": "3d/Nano-Board-rev-2-3d-angled-bottom.png",
+  "step": "3d/Nano-Board-rev-2.step",
+  "glb": "3d/Nano-Board-rev-2.glb",
+  "gerbers_dir": "gerbers",
+  "navigate": "HTML/Nano-Board-rev-2-navigate.html"
+}
