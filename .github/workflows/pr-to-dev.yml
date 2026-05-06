@@ -195,6 +195,24 @@ jobs:
 
             **Please fix the issues before merging.**' || '' }}
 
+      # ----------------------------------------------------------------------
+      # Enable GitHub auto-merge on the PR. This does NOT merge immediately —
+      # it tells GitHub to merge the PR as soon as all required status checks
+      # pass and review requirements are satisfied. Requires:
+      #   - Repo Settings → General → "Allow auto-merge" enabled
+      #   - "ERC + DRC gate" configured as required check on `dev`
+      # If the gate fails below, this is harmless: auto-merge waits for green.
+      # ----------------------------------------------------------------------
+      - name: Enable auto-merge
+        if: steps.count.outputs.total_errors == '0'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr merge "${{ github.event.pull_request.number }}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --auto --squash || true
+
       - name: Fail job if ERC/DRC errors
         if: steps.count.outputs.total_errors != '0'
         run: |
