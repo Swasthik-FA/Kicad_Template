@@ -92,11 +92,17 @@
     alt="Interactive 3D PCB model"
     camera-controls
     touch-action="pan-y"
-    shadow-intensity="1"
-    exposure="1.1"
+    shadow-intensity="1.4"
+    shadow-softness="0.85"
+    exposure="1.0"
+    tone-mapping="aces"
     environment-image="neutral"
-    interaction-prompt="auto"
-    auto-rotate-delay="3000">
+    interaction-prompt="none"
+    min-camera-orbit="auto auto 50%"
+    max-camera-orbit="auto auto 400%"
+    camera-orbit="35deg 65deg 130%"
+    field-of-view="22deg"
+    reveal="auto">
   </model-viewer>
 
   <script type="module"
