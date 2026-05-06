@@ -15,11 +15,14 @@
   html, body { margin: 0; height: 100%; }
   body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: #EEF2F6;
-    color: #1F2937;
+    background: #0A0E1A;
+    color: #E6E9F2;
     overflow: hidden;
     background-image:
-      radial-gradient(1200px 800px at 50% -10%, #FFFFFF 0%, #EEF2F6 55%, #DDE3EC 100%);
+      radial-gradient(820px 620px at 8% -12%, rgba(99,102,241,0.42), transparent 60%),
+      radial-gradient(680px 520px at 96% -4%, rgba(14,165,233,0.32), transparent 65%),
+      radial-gradient(720px 580px at 88% 105%, rgba(236,72,153,0.28), transparent 62%),
+      radial-gradient(760px 600px at 4% 110%, rgba(168,85,247,0.34), transparent 60%);
   }
 
   /* "Interactive 3D Model" heading — accent bar + gradient text fill,
@@ -33,7 +36,11 @@
     letter-spacing: -0.01em;
     padding-left: 18px;
     line-height: 1.2;
-    color: #0F172A;
+    background-image: linear-gradient(90deg, #818CF8 0%, #6366F1 35%, #E6E9F2 100%);
+    -webkit-background-clip: text;
+            background-clip: text;
+    -webkit-text-fill-color: transparent;
+            color: transparent;
   }
   .heading::before {
     content: "";
@@ -42,7 +49,8 @@
     transform: translateY(-50%);
     width: 4px; height: 22px;
     border-radius: 999px;
-    background: linear-gradient(180deg, #2563EB, #1D4ED8);
+    background: linear-gradient(180deg, #818CF8, #6366F1);
+    box-shadow: 0 0 16px rgba(99,102,241,.55), 0 0 4px rgba(99,102,241,.6);
   }
 
   model-viewer {
@@ -54,14 +62,14 @@
   .loader, .err {
     position: fixed; inset: 0;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 14px; color: #475569; pointer-events: none;
+    gap: 14px; color: #94A0B8; pointer-events: none;
     transition: opacity .3s ease;
   }
-  .err { display: none; color: #B91C1C; padding: 24px; text-align: center; }
+  .err { display: none; color: #F87171; padding: 24px; text-align: center; }
   .spinner {
     width: 36px; height: 36px;
-    border: 3px solid rgba(15,23,42,0.10);
-    border-top-color: #2563EB;
+    border: 3px solid rgba(255,255,255,0.10);
+    border-top-color: #818CF8;
     border-radius: 50%;
     animation: spin .9s linear infinite;
   }
@@ -84,10 +92,10 @@
     alt="Interactive 3D PCB model"
     camera-controls
     touch-action="pan-y"
-    shadow-intensity="0.9"
-    shadow-softness="1"
-    exposure="1.15"
-    tone-mapping="commerce"
+    shadow-intensity="1.4"
+    shadow-softness="0.85"
+    exposure="1.0"
+    tone-mapping="aces"
     environment-image="neutral"
     interaction-prompt="none"
     min-camera-orbit="auto auto 50%"
