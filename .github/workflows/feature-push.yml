@@ -251,7 +251,8 @@ jobs:
 
           # ----- build dynamic index.html ---------------------------------------
           def card(href, title, sub):
-              return (f'<a class="card" href="{html.escape(href)}">'
+              return (f'<a class="card" href="{html.escape(href)}" '
+                      f'target="_blank" rel="noopener noreferrer">'
                       f'<div class="t">{html.escape(title)}</div>'
                       f'<div class="s">{html.escape(sub)}</div></a>')
 
