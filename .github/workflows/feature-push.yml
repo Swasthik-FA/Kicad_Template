@@ -33,7 +33,6 @@ env:
 
 permissions:
   contents: write
-  actions: write
 
 jobs:
   visual:
@@ -716,20 +715,6 @@ jobs:
           done
           echo "ERROR: failed to push refreshed HTML/ after 5 attempts."
           exit 1
-
-      # ----------------------------------------------------------------------
-      # Pushes made via GITHUB_TOKEN do not trigger downstream workflows,
-      # so the Pages deploy (pages.yml) never sees the auto-commit. Kick
-      # it off explicitly here.
-      # ----------------------------------------------------------------------
-      - name: Trigger Pages deploy
-        if: always()
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh workflow run pages.yml --ref "${GITHUB_REF_NAME}" \
-            --repo "${GITHUB_REPOSITORY}" || true
 
       - name: Upload visual preview artifact
         if: always()
