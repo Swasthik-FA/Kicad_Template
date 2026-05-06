@@ -8,6 +8,7 @@
   "render_bottom": "3d/Nano-Board-rev-2-3d-bottom.png",
   "render_iso": "3d/Nano-Board-rev-2-3d-angled-bottom.png",
   "step": "3d/Nano-Board-rev-2.step",
+  "step_zip": "Nano-Board-rev-2-step.zip",
   "glb": "3d/Nano-Board-rev-2.glb",
   "gerbers_zip": "Nano-Board-rev-2-gerbers.zip",
   "navigate": "HTML/Nano-Board-rev-2-navigate.html"
