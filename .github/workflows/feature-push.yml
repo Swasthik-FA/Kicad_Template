@@ -63,8 +63,20 @@ jobs:
       # violations; `continue-on-error: true` plus `set +e` keep the
       # workflow green regardless on feature branches.
       # ----------------------------------------------------------------------
+      - name: Detect PCB presence
+        id: detect
+        run: |
+          PCB="${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb"
+          if [ -f "$PCB" ] && grep -q "(segment\|(footprint\|(gr_line" "$PCB" 2>/dev/null; then
+            echo "has_pcb=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_pcb=false" >> "$GITHUB_OUTPUT"
+            echo "No usable PCB file — running schematic-only KiBot group."
+          fi
+
       - name: KiBot — full group (preflights + outputs)
         id: kibot
+        if: steps.detect.outputs.has_pcb == 'true'
         continue-on-error: true
         run: |
           set +e
@@ -76,6 +88,20 @@ jobs:
             --log "${KIBOT_LOG}" \
             full
 
+      - name: KiBot — schematic-only group (no PCB)
+        id: kibot_sch
+        if: steps.detect.outputs.has_pcb == 'false'
+        continue-on-error: true
+        run: |
+          set +e
+          kibot \
+            -c "${KIBOT_CONFIG}" \
+            -d output \
+            -e "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_sch" \
+            --skip-pre drc \
+            --log "${KIBOT_LOG}" \
+            schematic_only
+
       # ----------------------------------------------------------------------
       # Build a browser-ready GLB so the navigate_3d page can show the
       # board interactively via <model-viewer>. The conversion script is
@@ -85,6 +111,7 @@ jobs:
       # everything else.
       # ----------------------------------------------------------------------
       - name: Convert PCB to GLB for in-browser 3D viewer
+        if: steps.detect.outputs.has_pcb == 'true'
         continue-on-error: true
         run: |
           set +e
