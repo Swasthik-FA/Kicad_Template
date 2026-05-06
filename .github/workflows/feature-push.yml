@@ -123,6 +123,29 @@ jobs:
           ls -la output/3d/ || true
 
       # ----------------------------------------------------------------------
+      # Compress the GLB with gltf-transform: Meshopt geometry compression,
+      # texture resize+webp, dedup. Typical reduction: 70-85%. Falls back to
+      # the original GLB if anything fails (continue-on-error). model-viewer
+      # decodes Meshopt natively — no viewer code change required.
+      # ----------------------------------------------------------------------
+      - name: Compress GLB (gltf-transform)
+        if: steps.detect.outputs.has_pcb == 'true'
+        continue-on-error: true
+        run: |
+          set -e
+          GLB="output/3d/${KICAD_PROJECT}.glb"
+          [ -f "$GLB" ] || { echo "no GLB to compress"; exit 0; }
+          ORIG=$(stat -c%s "$GLB")
+          npx --yes @gltf-transform/cli@4 optimize "$GLB" "$GLB.opt" \
+            --compress meshopt \
+            --texture-compress webp \
+            --texture-size 1024 \
+            --simplify false || { echo "compression failed; keeping original"; exit 0; }
+          NEW=$(stat -c%s "$GLB.opt")
+          mv "$GLB.opt" "$GLB"
+          echo "GLB compressed: ${ORIG} -> ${NEW} bytes ($(( 100 - NEW * 100 / ORIG ))% smaller)"
+
+      # ----------------------------------------------------------------------
       # Count violations — purely informational. Drives a friendly summary,
       # NOT a merge gate. The job never exits non-zero based on this.
       # ----------------------------------------------------------------------
