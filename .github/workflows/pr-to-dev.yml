@@ -123,28 +123,6 @@ jobs:
           PY
 
       # ----------------------------------------------------------------------
-      # Always generate the HTML error report (clean run = green report).
-      # ----------------------------------------------------------------------
-      - name: Generate error report HTML
-        if: always()
-        run: |
-          python3 config/generate_error_report.py \
-            --erc-json output/reports/erc-erc.json \
-            --drc-json output/reports/drc-drc.json \
-            --erc-rpt  output/reports/erc-erc.rpt \
-            --drc-rpt  output/reports/drc-drc.rpt \
-            --output   output/error-report.html
-
-      - name: Upload error report (always)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: error-report
-          path: output/error-report.html
-          retention-days: 14
-          if-no-files-found: warn
-
-      # ----------------------------------------------------------------------
       # Sticky PR summary: one comment per PR, updated each run. Marker
       # <!-- erc-drc-gate --> lets peter-evans/find-comment locate and
       # rewrite the same comment instead of stacking new ones. Posts on
@@ -175,7 +153,7 @@ jobs:
             | ERC   | ${{ steps.count.outputs.erc_errors }} | ${{ steps.count.outputs.erc_warnings }} |
             | DRC   | ${{ steps.count.outputs.drc_errors }} | ${{ steps.count.outputs.drc_warnings }} |
 
-            Open the [`error-report` artifact ↗](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for the full violations list.${{ steps.count.outputs.total_errors != '0' && '
+            See the [workflow run ↗](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for the raw KiBot logs.${{ steps.count.outputs.total_errors != '0' && '
 
             **Please fix the issues before merging.**' || '' }}
 
