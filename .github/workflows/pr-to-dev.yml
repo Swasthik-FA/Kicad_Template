@@ -48,6 +48,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # ----------------------------------------------------------------------
+      # Enforce source-branch policy: PRs into `dev` must come from a
+      # `feature/*` branch. Fails the job (and so blocks the merge) early
+      # if the head ref does not start with feature/.
+      # ----------------------------------------------------------------------
+      - name: Enforce feature/* source branch
+        run: |
+          HEAD_REF="${{ github.event.pull_request.head.ref }}"
+          echo "PR head ref: $HEAD_REF"
+          if [[ "$HEAD_REF" != feature/* ]]; then
+            echo "::error::PRs into 'dev' must come from a 'feature/*' branch. Got: $HEAD_REF"
+            exit 1
+          fi
+
       - name: Prepare reports directory
         run: mkdir -p output/reports
 
@@ -147,20 +161,39 @@ jobs:
           if-no-files-found: warn
 
       # ----------------------------------------------------------------------
-      # On fail: comment on the PR pointing at the error-report artifact.
+      # Sticky PR summary: one comment per PR, updated each run. Marker
+      # <!-- erc-drc-gate --> lets peter-evans/find-comment locate and
+      # rewrite the same comment instead of stacking new ones. Posts on
+      # both pass and fail, so the PR always shows the latest state.
       # ----------------------------------------------------------------------
-      - name: Comment on PR (on failure)
-        if: steps.count.outputs.total_errors != '0'
-        uses: peter-evans/create-or-update-comment@v4
+      - name: Find existing gate comment
+        id: find_comment
+        if: always()
+        uses: peter-evans/find-comment@v3
         with:
           issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: '<!-- erc-drc-gate -->'
+
+      - name: Post sticky PR summary
+        if: always()
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.find_comment.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          edit-mode: replace
           body: |
-            ❌ **ERC / DRC failed — merge blocked.**
+            <!-- erc-drc-gate -->
+            ### ${{ steps.count.outputs.total_errors == '0' && '✅ ERC / DRC passed — merge allowed' || '❌ ERC / DRC failed — merge blocked' }}
 
-            ERC: **${{ steps.count.outputs.erc_errors }}** error(s), ${{ steps.count.outputs.erc_warnings }} warning(s)
-            DRC: **${{ steps.count.outputs.drc_errors }}** error(s), ${{ steps.count.outputs.drc_warnings }} warning(s)
+            | Check | Errors | Warnings |
+            |-------|-------:|---------:|
+            | ERC   | ${{ steps.count.outputs.erc_errors }} | ${{ steps.count.outputs.erc_warnings }} |
+            | DRC   | ${{ steps.count.outputs.drc_errors }} | ${{ steps.count.outputs.drc_warnings }} |
 
-            Download the [`error-report` artifact ↗](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) and open `error-report.html` for the full violations list.
+            Open the [`error-report` artifact ↗](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for the full violations list.${{ steps.count.outputs.total_errors != '0' && '
+
+            **Please fix the issues before merging.**' || '' }}
 
       - name: Fail job if ERC/DRC errors
         if: steps.count.outputs.total_errors != '0'
