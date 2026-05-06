@@ -1,0 +1,782 @@
+/* ============================================================================
+ * Custom navigate-page theme.
+ * ----------------------------------------------------------------------------
+ * Replaces KiBot's default styles.css after every CI run (see the publish
+ * step in .github/workflows/feature-push.yml). Class names + section ids
+ * mirror what KiBot's navigate_results template emits, so the same HTML
+ * works without modification.
+ *
+ * Design language:
+ *   - Glassmorphism (frosted-glass surfaces with backdrop blur)
+ *   - Minimal / generous whitespace, restrained typography
+ *   - Dashboard-style: per-category accent colour stripes, status dots
+ * ============================================================================ */
+
+/* Design tokens ============================================================ */
+
+:root {
+    /* Dark theme palette */
+    --d-bg:            #0A0E1A;
+    --d-bg-2:          #0E1320;
+    --d-surface:       rgba(22, 28, 45, 0.55);     /* glass: translucent */
+    --d-surface-solid: #161C2D;                     /* opaque fallback */
+    --d-surface-2:     rgba(30, 38, 60, 0.50);
+    --d-border:        rgba(255, 255, 255, 0.07);
+    --d-border-strong: rgba(255, 255, 255, 0.14);
+    --d-text:          #E6E9F2;
+    --d-text-muted:    #94A0B8;
+    --d-text-dim:      #5C6679;
+
+    /* Light theme palette */
+    --l-bg:            #F7F8FB;
+    --l-bg-2:          #FFFFFF;
+    --l-surface:       rgba(255, 255, 255, 0.65);
+    --l-surface-solid: #FFFFFF;
+    --l-surface-2:     rgba(244, 246, 251, 0.70);
+    --l-border:        rgba(15, 23, 42, 0.06);
+    --l-border-strong: rgba(15, 23, 42, 0.12);
+    --l-text:          #0F172A;
+    --l-text-muted:    #475569;
+    --l-text-dim:      #94A3B8;
+
+    /* Brand / accent — keep monochrome restraint, single highlight colour */
+    --accent:          #818CF8;
+    --accent-strong:   #6366F1;
+    --accent-soft:     rgba(129, 140, 248, 0.18);
+
+    /* Per-mode aliases */
+    --bg:              var(--d-bg);
+    --bg-2:            var(--d-bg-2);
+    --surface:         var(--d-surface);
+    --surface-solid:   var(--d-surface-solid);
+    --surface-2:       var(--d-surface-2);
+    --border:          var(--d-border);
+    --border-strong:   var(--d-border-strong);
+    --text:            var(--d-text);
+    --text-muted:      var(--d-text-muted);
+    --text-dim:        var(--d-text-dim);
+
+    /* Category accent colours (dashboard-style stripes) */
+    --c-reports:       #F87171;  /* ERC/DRC — red */
+    --c-schematic:     #A78BFA;  /* PDF schematic — violet */
+    --c-3d:            #60A5FA;  /* 3D / STEP — blue */
+    --c-bom:           #34D399;  /* iBOM / CSV BOM — green */
+    --c-assembly:      #FBBF24;  /* pick-place — amber */
+    --c-gerbers:       #2DD4BF;  /* gerbers / drill — teal */
+
+    /* Legacy aliases — KiBot's template references these names directly */
+    --light-bg-color:           var(--l-bg);
+    --dark-bg-color:            var(--d-bg);
+    --light-bg-color-banner:    var(--l-surface-solid);
+    --dark-bg-color-banner:     var(--d-surface-solid);
+    --light-text-color:         var(--l-text);
+    --dark-text-color:          var(--d-text);
+    --dark-text-color-accent:   var(--d-text-muted);
+    --light-text-color-accent:  var(--l-text-muted);
+    --light-banner-hover:       var(--l-surface-2);
+    --dark-banner-hover:        var(--d-surface-2);
+    --text-color-accent:        var(--text-muted);
+    --light-hover-color:        var(--accent-strong);
+    --light-hover-color-act:    var(--accent-strong);
+    --dark-hover-color:         var(--accent);
+    --dark-hover-color-act:     var(--accent-strong);
+
+    /* Shape & elevation */
+    --radius-sm: 10px;
+    --radius:    16px;
+    --radius-lg: 22px;
+    --shadow-1:  0 1px 2px rgba(0,0,0,.30), 0 1px 3px rgba(0,0,0,.20);
+    --shadow-2:  0 8px 24px rgba(0,0,0,.30), 0 2px 6px rgba(0,0,0,.16);
+    --shadow-3:  0 20px 48px rgba(0,0,0,.42), 0 6px 14px rgba(0,0,0,.22);
+    --t-fast:    .15s cubic-bezier(.4,0,.2,1);
+    --t-base:    .28s cubic-bezier(.4,0,.2,1);
+    --blur:      22px;
+}
+
+body.light-mode {
+    --bg:            var(--l-bg);
+    --bg-2:          var(--l-bg-2);
+    --surface:       var(--l-surface);
+    --surface-solid: var(--l-surface-solid);
+    --surface-2:     var(--l-surface-2);
+    --border:        var(--l-border);
+    --border-strong: var(--l-border-strong);
+    --text:          var(--l-text);
+    --text-muted:    var(--l-text-muted);
+    --text-dim:      var(--l-text-dim);
+    --accent-soft:   rgba(99, 102, 241, 0.12);
+    --shadow-1:  0 1px 2px rgba(15,23,42,.05), 0 1px 3px rgba(15,23,42,.04);
+    --shadow-2:  0 6px 18px rgba(15,23,42,.07), 0 2px 4px rgba(15,23,42,.04);
+    --shadow-3:  0 16px 40px rgba(15,23,42,.10), 0 4px 8px rgba(15,23,42,.05);
+}
+
+/* Base ===================================================================== */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                 'Helvetica Neue', Arial, sans-serif;
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    transition: color var(--t-base);
+
+    /* Base canvas */
+    background-color: var(--bg);
+
+    /* Mesh-gradient: five vivid radial blobs over a dark base.
+       Fixed attachment so they don't scroll with the content. */
+    background-image:
+        radial-gradient(820px 620px at  8% -12%, rgba(99, 102, 241, 0.42), transparent 60%),
+        radial-gradient(680px 520px at 96%  -4%, rgba(14, 165, 233, 0.32), transparent 65%),
+        radial-gradient(720px 580px at 88% 105%, rgba(236,  72, 153, 0.28), transparent 62%),
+        radial-gradient(760px 600px at  4% 110%, rgba(168,  85, 247, 0.34), transparent 60%),
+        radial-gradient(900px 700px at 50%  50%, rgba( 45, 212, 191, 0.10), transparent 70%);
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+}
+
+body.light-mode {
+    background-color: var(--l-bg);
+    background-image:
+        radial-gradient(820px 620px at  8% -12%, rgba(99, 102, 241, 0.18), transparent 60%),
+        radial-gradient(680px 520px at 96%  -4%, rgba(14, 165, 233, 0.16), transparent 65%),
+        radial-gradient(720px 580px at 88% 105%, rgba(236,  72, 153, 0.14), transparent 62%),
+        radial-gradient(760px 600px at  4% 110%, rgba(168,  85, 247, 0.16), transparent 60%);
+}
+
+::selection { background: var(--accent-soft); color: var(--text); }
+
+/* Top bar (frosted glass) ================================================== */
+
+#topmenu {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 22px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: saturate(180%) blur(var(--blur));
+    -webkit-backdrop-filter: saturate(180%) blur(var(--blur));
+    box-shadow: var(--shadow-1);
+    transition: background-color var(--t-base), border-color var(--t-base);
+}
+
+button, #open-navbar, #close-navbar {
+    background: transparent;
+    border: 0;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    user-select: none;
+    transition: color var(--t-fast), background-color var(--t-fast),
+                transform var(--t-fast);
+}
+button:hover, #open-navbar:hover, #close-navbar:hover {
+    color: var(--accent);
+    background: var(--surface-2);
+}
+button:active, #open-navbar:active, #close-navbar:active {
+    color: var(--accent-strong);
+    transform: scale(.96);
+}
+button { font-size: 18px; margin: 0 4px; }
+#open-navbar, #close-navbar {
+    width: 40px; height: 40px; line-height: 40px;
+    text-align: center; font-size: 24px; margin-left: 8px;
+}
+
+/* Sidebar (frosted glass) ================================================== */
+
+.navbar {
+    position: fixed;
+    top: var(--top-menu-height, 60px); left: 0;
+    width: 0;
+    height: calc(100% - var(--top-menu-height, 60px));
+    background: var(--surface);
+    backdrop-filter: saturate(180%) blur(var(--blur));
+    -webkit-backdrop-filter: saturate(180%) blur(var(--blur));
+    border-right: 1px solid var(--border);
+    overflow-x: hidden;
+    overflow-y: auto;
+    transition: width var(--t-base), padding var(--t-base),
+                background-color var(--t-base), border-color var(--t-base);
+    box-sizing: border-box;
+    padding-bottom: 40px;
+    z-index: 999;
+}
+
+.navbar > ul:first-child { margin-top: 14px; }
+
+.navbar-output {
+    display: block;
+    padding: 9px 16px 9px 28px;
+    text-decoration: none;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text-muted);
+    border-radius: 8px;
+    margin: 1px 10px;
+    position: relative;
+    transition: color var(--t-fast), background-color var(--t-fast),
+                padding-left var(--t-fast);
+}
+
+.navbar-output::before {
+    content: "";
+    position: absolute;
+    left: 14px; top: 50%;
+    transform: translateY(-50%);
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    transition: background-color var(--t-fast), transform var(--t-fast);
+}
+
+.navbar-output:hover {
+    color: var(--text);
+    background: var(--surface-2);
+    padding-left: 32px;
+}
+.navbar-output:hover::before {
+    background: var(--accent);
+    transform: translateY(-50%) scale(1.6);
+}
+
+.navbar-category {
+    list-style: none;
+    padding: 0; margin: 0;
+    user-select: none;
+}
+
+.navbar-category .folder > span {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    color: var(--text-muted);
+    padding: 11px 16px;
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    border-radius: 8px;
+    margin: 4px 10px;
+    transition: background-color var(--t-fast), color var(--t-fast);
+}
+
+.navbar-category .folder > span:hover { color: var(--text); background: var(--surface-2); }
+.navbar-category .folder > span:active { color: var(--accent-strong); }
+
+.navbar-category .folder-contents {
+    list-style: none;
+    margin: 2px 0 10px 12px;
+    padding: 0;
+}
+
+/* Chevron */
+.chevron {
+    display: block;
+    width: 0; height: 0;
+    border: 5px solid transparent;
+    border-left-color: var(--text-dim);
+    margin-right: 12px;
+    transform-origin: 25% 50%;
+    transition: transform var(--t-fast), border-left-color var(--t-fast);
+    pointer-events: none;
+}
+.folder.open > span .chevron {
+    border-left-color: var(--accent);
+    transform: rotate(90deg);
+}
+.folder > span:hover .chevron { border-left-color: var(--accent); }
+
+/* Main content ============================================================= */
+
+#main {
+    transition: margin-left var(--t-base);
+    padding: 32px clamp(20px, 5vw, 56px);
+    margin-top: 88px;
+    max-width: 1500px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Section header — bold, generous whitespace, gradient-coloured.
+   Accent colour is set per category via .output-virtual-box[id^=...] below. */
+.output-comment {
+    font-size: 1.55rem;
+    font-weight: 800;
+    margin: 56px 0 24px;
+    letter-spacing: -0.025em;
+    text-align: left;
+    position: relative;
+    padding-left: 22px;
+    text-transform: capitalize;
+
+    /* Gradient text fill — accent → accent-strong → text */
+    background-image: linear-gradient(
+        90deg,
+        var(--accent) 0%,
+        var(--accent-strong) 35%,
+        var(--text) 100%
+    );
+    -webkit-background-clip: text;
+            background-clip: text;
+    -webkit-text-fill-color: transparent;
+            color: transparent;
+}
+.output-comment::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 50%;
+    transform: translateY(-50%);
+    width: 6px; height: 30px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, var(--accent), var(--accent-strong));
+    box-shadow: 0 0 22px var(--accent), 0 0 6px var(--accent);
+}
+
+.generator {
+    text-align: right;
+    font-size: .75rem;
+    color: var(--text-dim);
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+}
+.generator a { color: var(--accent); text-decoration: none; }
+.generator a:hover { text-decoration: underline; }
+
+/* Cards (glass) ============================================================ */
+
+.items-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 20px;
+    padding: 4px 0;
+}
+
+.category-box, .output-box {
+    position: relative;
+    background:
+        linear-gradient(135deg,
+            color-mix(in srgb, var(--accent) 8%, transparent) 0%,
+            transparent 55%),
+        var(--surface);
+    backdrop-filter: saturate(180%) blur(var(--blur));
+    -webkit-backdrop-filter: saturate(180%) blur(var(--blur));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    text-align: center;
+    color: var(--text);
+    box-shadow: var(--shadow-1);
+    cursor: pointer;
+    width: 100%;
+    min-height: 168px;
+    overflow: hidden;
+    transition: transform var(--t-base),
+                border-color var(--t-base),
+                box-shadow var(--t-base);
+    isolation: isolate;
+}
+
+/* Animated conic-gradient border — visible on hover only.
+   We layer a slightly larger gradient behind the card and mask it so only
+   a thin ring shows through. */
+.category-box::before, .output-box::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 0;
+    background:
+        linear-gradient(180deg, rgba(255,255,255,.06) 0%, rgba(255,255,255,0) 22%),
+        conic-gradient(from var(--ring-angle, 0deg),
+            var(--accent),
+            var(--accent-strong),
+            transparent 35%,
+            transparent 65%,
+            var(--accent-strong),
+            var(--accent));
+    -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    padding: 1px;
+    opacity: 0;
+    transition: opacity var(--t-base);
+}
+@property --ring-angle {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: false;
+}
+@keyframes ring-spin { to { --ring-angle: 360deg; } }
+.category-box:hover::before, .output-box:hover::before {
+    opacity: 1;
+    animation: ring-spin 6s linear infinite;
+}
+
+/* Category accent dot — top-right, matches the section colour */
+.output-box::after {
+    content: "";
+    position: absolute;
+    top: 14px; right: 14px;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent-soft);
+    opacity: .7;
+    z-index: 1;
+}
+
+.output-box.wide {
+    grid-column: span 2;
+    min-height: 260px;
+}
+@media (max-width: 760px) {
+    .output-box.wide { grid-column: span 1; }
+}
+
+.category-box:hover, .output-box:hover {
+    transform: translateY(-5px);
+    border-color: transparent;
+    box-shadow:
+        var(--shadow-3),
+        0 0 0 1px var(--accent-soft),
+        0 16px 48px -12px var(--accent);
+}
+
+.category-box img, .output-box img {
+    max-width: 100%;
+    max-height: 100%;
+    height: auto;
+    margin: 4px 0 14px;
+    border-radius: 10px;
+    transition: transform var(--t-base);
+    z-index: 1;
+}
+.category-box:hover img, .output-box:hover img { transform: scale(1.03); }
+
+.category-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0;
+    letter-spacing: -0.01em;
+    z-index: 1;
+}
+
+.output-box .filename {
+    text-decoration: none;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 600;
+    margin: 6px 0 4px;
+    word-break: break-word;
+    line-height: 1.4;
+    z-index: 1;
+}
+
+.output-box .output-name {
+    color: var(--text-muted);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    font-weight: 600;
+    margin: 0;
+    z-index: 1;
+}
+
+/* Anchor offset */
+.output-virtual-box {
+    position: relative;
+    padding-top: var(--top-menu-height, 88px);
+    margin-top: calc(-1 * var(--top-menu-height, 88px));
+    pointer-events: none;
+}
+.output-virtual-box > * { pointer-events: auto; }
+
+/* ---------------------------------------------------------------------------
+ * Per-category accent. Each output-virtual-box receives a colour based on
+ * its id (set by KiBot from the output name). This drives the heading
+ * stripe, card hover border, and corner status dot.
+ * ------------------------------------------------------------------------- */
+
+[id="erc"], [id="drc"]               { --accent: var(--c-reports);   --accent-soft: rgba(248,113,113,.20); }
+[id="pdf_schematic"]                 { --accent: var(--c-schematic); --accent-soft: rgba(167,139,250,.20); }
+[id^="png_3d"], [id="step"]          { --accent: var(--c-3d);        --accent-soft: rgba(96,165,250,.20); }
+[id="html_ibom"], [id="csv_bom"]     { --accent: var(--c-bom);       --accent-soft: rgba(52,211,153,.20); }
+[id="csv_position"]                  { --accent: var(--c-assembly);  --accent-soft: rgba(251,191,36,.20); }
+[id="gerbers"], [id="drill"]         { --accent: var(--c-gerbers);   --accent-soft: rgba(45,212,191,.20); }
+
+/* Theme toggle ============================================================= */
+
+.theme-switch {
+    position: relative;
+    display: inline-block;
+    width: 46px; height: 24px;
+    margin-left: 8px;
+}
+.theme-switch input { opacity: 0; width: 0; height: 0; }
+
+.theme-switch span {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background: var(--surface-2);
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    transition: background-color var(--t-base), border-color var(--t-base);
+    backdrop-filter: blur(8px);
+}
+.theme-switch span::before {
+    position: absolute;
+    content: "";
+    height: 18px; width: 18px;
+    left: 2px; bottom: 2px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+    border-radius: 50%;
+    box-shadow: 0 1px 4px rgba(0,0,0,.3), 0 0 0 1px rgba(255,255,255,.05) inset;
+    transition: none;
+}
+.theme-switch span.animate::before {
+    transition: transform var(--t-base), background var(--t-base);
+}
+.theme-switch input:checked + span::before { transform: translateX(22px); }
+
+/* Scrollbars =============================================================== */
+
+body, html { scroll-behavior: smooth; scrollbar-width: thin; }
+
+body::-webkit-scrollbar, .navbar::-webkit-scrollbar {
+    width: 10px; height: 10px;
+}
+body::-webkit-scrollbar-thumb, .navbar::-webkit-scrollbar-thumb {
+    border-radius: 6px;
+    background: var(--border-strong);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+body::-webkit-scrollbar-thumb:hover, .navbar::-webkit-scrollbar-thumb:hover {
+    background: var(--text-dim);
+    background-clip: padding-box;
+}
+body::-webkit-scrollbar-track, .navbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+body::-webkit-scrollbar-corner, .navbar::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+/* Markdown ================================================================= */
+
+.markdown-content {
+    font-family: inherit;
+    line-height: 1.7;
+    padding: 24px 28px;
+    border-radius: var(--radius);
+    background: var(--surface);
+    backdrop-filter: saturate(180%) blur(var(--blur));
+    -webkit-backdrop-filter: saturate(180%) blur(var(--blur));
+    border: 1px solid var(--border);
+    max-width: 100%;
+    margin: 0 auto;
+    white-space: normal;
+    transition: background-color var(--t-base), border-color var(--t-base),
+                color var(--t-base);
+}
+
+.markdown-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0 24px;
+    font-size: 14px;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+.markdown-content table th,
+.markdown-content table td {
+    border-bottom: 1px solid var(--border);
+    padding: 12px 14px;
+    text-align: left;
+}
+.markdown-content table th {
+    background: var(--surface-2);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: .08em;
+    color: var(--text-muted);
+}
+
+.markdown-content pre {
+    background: var(--surface-2);
+    color: var(--text);
+    padding: 16px 18px;
+    border-radius: var(--radius-sm);
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    font-size: 13px;
+}
+
+.markdown-content code {
+    background: var(--surface-2);
+    color: var(--text);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.92em;
+}
+
+.markdown-content pre code {
+    background: transparent; padding: 0; border-radius: 0;
+}
+
+.markdown-content a {
+    color: var(--accent);
+    text-decoration: none;
+    transition: color var(--t-fast);
+    border-bottom: 1px solid transparent;
+}
+.markdown-content a:hover {
+    color: var(--accent-strong);
+    border-bottom-color: var(--accent-strong);
+}
+
+.markdown-content img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 16px auto;
+    border-radius: var(--radius-sm);
+}
+
+/* Search ================================================================== */
+
+#search-container {
+    padding: 14px 14px 8px;
+    background: transparent;
+    width: 100%;
+    box-sizing: border-box;
+    z-index: 1001;
+}
+
+#search-bar {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    outline: none;
+    background: var(--surface-2);
+    backdrop-filter: blur(8px);
+    color: var(--text);
+    font-size: 13px;
+    box-sizing: border-box;
+    transition: border-color var(--t-fast), background-color var(--t-fast),
+                box-shadow var(--t-fast);
+}
+#search-bar::placeholder { color: var(--text-dim); }
+#search-bar:focus {
+    border-color: var(--accent);
+    background: var(--surface-solid);
+    box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
+#autocomplete-list {
+    list-style: none;
+    padding: 4px;
+    margin: 6px 0 0;
+    max-height: 240px;
+    overflow-y: auto;
+    background: var(--surface-solid);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    position: absolute;
+    z-index: 1001;
+    width: auto;
+    box-sizing: border-box;
+    display: none;
+    box-shadow: var(--shadow-2);
+}
+
+#autocomplete-list li {
+    padding: 9px 12px;
+    cursor: pointer;
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 13px;
+    transition: background-color var(--t-fast), color var(--t-fast);
+}
+#autocomplete-list li:hover,
+#autocomplete-list li.highlighted,
+.highlighted {
+    background: var(--surface-2);
+    color: var(--accent);
+}
+
+/* Anti-flicker (preserve KiBot behavior) =================================== */
+
+body.no-transition,
+.no-transition .output-box,
+.no-transition .category-box,
+body.no-transition .theme-switch span,
+body.no-transition button,
+body.no-transition #close-navbar,
+body.no-transition #home-button,
+body.no-transition #back-button,
+body.no-transition #forward-button,
+body.no-transition #topmenu,
+body.no-transition .navbar-category .folder > span,
+body.no-transition .navbar-output,
+body.no-transition .category-box,
+#search-bar {
+    transition: none !important;
+}
+
+/* Entry animation — subtle fade-up on cards on first paint ================= */
+
+@keyframes fade-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0);   }
+}
+@media (prefers-reduced-motion: no-preference) {
+    .items-container > .output-box,
+    .items-container > .category-box {
+        animation: fade-up .45s cubic-bezier(.4,0,.2,1) both;
+    }
+    .items-container > *:nth-child(2)  { animation-delay: .04s; }
+    .items-container > *:nth-child(3)  { animation-delay: .08s; }
+    .items-container > *:nth-child(4)  { animation-delay: .12s; }
+    .items-container > *:nth-child(5)  { animation-delay: .16s; }
+    .items-container > *:nth-child(6)  { animation-delay: .20s; }
+    .items-container > *:nth-child(n+7){ animation-delay: .24s; }
+}
+
+/* Small screens ============================================================ */
+
+@media (max-width: 640px) {
+    #topmenu { padding: 10px 14px; }
+    #main { padding: 18px 14px; margin-top: 76px; }
+    .output-comment { font-size: 1.2rem; margin: 36px 0 14px; }
+    .items-container { gap: 14px; }
+    .category-box, .output-box { padding: 18px 14px; min-height: 140px; }
+}
