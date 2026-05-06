@@ -218,11 +218,10 @@ jobs:
           if art["ibom"]:          sch_cards.append(card(art["ibom"],         "Interactive BOM",  "Browseable BOM viewer"))
 
           pcb_cards = []
-          if art["navigate"]:      pcb_cards.append(card(art["navigate"],     "PCB navigate page","Full KiBot output index"))
+          if art["glb"]:           pcb_cards.append(card("3d-viewer.html",    "Open Interactive 3D Viewer","Rotate, zoom, pan the live PCB"))
           if art["render_iso"]:    pcb_cards.append(card(art["render_iso"],   "3D render (iso)",  "Angled isometric view"))
           if art["render_top"]:    pcb_cards.append(card(art["render_top"],   "3D render (top)",  "Top view"))
           if art["render_bottom"]: pcb_cards.append(card(art["render_bottom"],"3D render (bottom)","Bottom view"))
-          if art["glb"]:           pcb_cards.append(card(art["glb"],          "3D model (GLB)",   "Browser 3D model"))
           if art["step"]:          pcb_cards.append(card(art["step"],         "STEP model",       "Mechanical CAD"))
           if art["gerbers_dir"]:   pcb_cards.append(card(art["gerbers_dir"]+"/", "Gerbers",       "Manufacturing files"))
           if art["drc_html"]:      pcb_cards.append(card(art["drc_html"],     "DRC report",       "Design rule check"))
