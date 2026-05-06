@@ -188,55 +188,6 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       # ----------------------------------------------------------------------
-      # Schematic-only mode: KiBot doesn't emit a navigate page, so write
-      # a small landing page linking to the schematic PDF, ERC report and
-      # CSV BOM. Mirrored into HTML/ by the publish step below.
-      # ----------------------------------------------------------------------
-      - name: Build schematic-only landing page
-        if: steps.detect.outputs.has_pcb == 'false'
-        continue-on-error: true
-        run: |
-          mkdir -p output/reports
-          python3 config/generate_error_report.py \
-            --erc-json output/reports/erc-erc.json \
-            --erc-rpt  output/reports/erc-erc.rpt \
-            --output   output/reports/erc-erc.html || true
-
-          PROJECT="${KICAD_PROJECT}"
-          cat > output/index.html <<HTML
-          <!DOCTYPE html>
-          <html><head><meta charset="utf-8"/>
-          <title>${PROJECT} — schematic-only project</title>
-          <style>
-            body{font-family:system-ui,sans-serif;background:#0f1320;color:#e6e9f2;
-                 max-width:720px;margin:4rem auto;padding:0 1.25rem;}
-            h1{font-size:1.5rem;margin-bottom:.25rem;}
-            p.sub{color:#94a0b8;margin-top:0;}
-            ul{list-style:none;padding:0;margin-top:2rem;}
-            li{margin:.75rem 0;}
-            a{display:block;padding:1rem 1.25rem;background:#1a2236;
-              border:1px solid rgba(255,255,255,.08);border-radius:12px;
-              color:#a5b4fc;text-decoration:none;font-weight:600;
-              transition:border-color .2s,transform .2s;}
-            a:hover{border-color:#818cf8;transform:translateY(-2px);}
-            a small{display:block;color:#94a0b8;font-weight:400;font-size:.85rem;
-                    margin-top:.25rem;}
-          </style></head><body>
-          <h1>${PROJECT}</h1>
-          <p class="sub">Schematic-only project. PCB outputs are not generated.</p>
-          <ul>
-            <li><a href="schematic/${PROJECT}-schematic.pdf">Schematic (PDF)
-                <small>Rendered from the KiCad schematic</small></a></li>
-            <li><a href="reports/erc-erc.html">ERC report
-                <small>Electrical rule check results</small></a></li>
-            <li><a href="bom/${PROJECT}-bom.csv">Bill of Materials (CSV)
-                <small>Component list exported from the schematic</small></a></li>
-          </ul>
-          </body></html>
-          HTML
-          echo "wrote output/index.html"
-
-      # ----------------------------------------------------------------------
       # Publish rendered PNGs and refresh repo-name placeholder in README.
       # The README has marker comments <!--REPO_NAME-->...<!--/REPO_NAME-->;
       # we always rewrite the content between them with the live GitHub repo
