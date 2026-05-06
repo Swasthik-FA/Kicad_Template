@@ -202,13 +202,25 @@ jobs:
               "render_iso":     first("3d/*3d-angled*.png"),
               "step":           first("3d/*.step"),
               "glb":            first("3d/*.glb"),
-              "gerbers_dir":    "gerbers" if any_match("gerbers/*") else None,
+              "gerbers_zip":    None,
               "navigate":       first(f"HTML/{project}-navigate.html") or first("HTML/*-navigate.html"),
           }
+          # Bundle gerbers into a single downloadable zip if any exist.
+          import zipfile
+          gerbers_dir = out / "gerbers"
+          if gerbers_dir.is_dir() and any(gerbers_dir.iterdir()):
+              zip_path = out / f"{project}-gerbers.zip"
+              with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+                  for f in sorted(gerbers_dir.rglob("*")):
+                      if f.is_file():
+                          zf.write(f, arcname=f.relative_to(gerbers_dir).as_posix())
+              art["gerbers_zip"] = zip_path.relative_to(out).as_posix()
+              print(f"bundled gerbers -> {zip_path}")
+
           (out / "artifacts.json").write_text(json.dumps(art, indent=2), encoding="utf-8")
 
           has_sch = any(art[k] for k in ("schematic_pdf","bom_csv","ibom","erc_html"))
-          has_pcb = any(art[k] for k in ("render_top","render_bottom","render_iso","step","glb","gerbers_dir","drc_html"))
+          has_pcb = any(art[k] for k in ("render_top","render_bottom","render_iso","step","glb","gerbers_zip","drc_html"))
 
           # ----- build dynamic index.html ---------------------------------------
           def card(href, title, sub):
@@ -228,7 +240,7 @@ jobs:
           if art["render_top"]:    pcb_cards.append(card(art["render_top"],   "3D render (top)",  "Top view"))
           if art["render_bottom"]: pcb_cards.append(card(art["render_bottom"],"3D render (bottom)","Bottom view"))
           if art["step"]:          pcb_cards.append(card(art["step"],         "STEP model",       "Mechanical CAD"))
-          if art["gerbers_dir"]:   pcb_cards.append(card(art["gerbers_dir"]+"/", "Gerbers",       "Manufacturing files"))
+          if art["gerbers_zip"]:   pcb_cards.append(card(art["gerbers_zip"],  "Gerbers (ZIP)",    "Download all manufacturing files"))
           if art["drc_html"]:      pcb_cards.append(card(art["drc_html"],     "DRC report",       "Design rule check"))
 
           sections = []
