@@ -228,6 +228,7 @@ jobs:
               "render_bottom":  first("3d/*3d-bottom*.png"),
               "render_iso":     first("3d/*3d-angled*.png"),
               "step":           first("3d/*.step"),
+              "step_zip":       None,
               "glb":            first("3d/*.glb"),
               "gerbers_zip":    None,
               "navigate":       first(f"HTML/{project}-navigate.html") or first("HTML/*-navigate.html"),
@@ -243,6 +244,15 @@ jobs:
                           zf.write(f, arcname=f.relative_to(gerbers_dir).as_posix())
               art["gerbers_zip"] = zip_path.relative_to(out).as_posix()
               print(f"bundled gerbers -> {zip_path}")
+
+          # Bundle STEP model into a zip if present.
+          if art["step"]:
+              step_src = out / art["step"]
+              step_zip = out / f"{project}-step.zip"
+              with zipfile.ZipFile(step_zip, "w", zipfile.ZIP_DEFLATED) as zf:
+                  zf.write(step_src, arcname=step_src.name)
+              art["step_zip"] = step_zip.relative_to(out).as_posix()
+              print(f"bundled step -> {step_zip}")
 
           (out / "artifacts.json").write_text(json.dumps(art, indent=2), encoding="utf-8")
 
@@ -267,7 +277,7 @@ jobs:
           if art["render_iso"]:    pcb_cards.append(card(art["render_iso"],   "3D render (iso)",  "Angled isometric view"))
           if art["render_top"]:    pcb_cards.append(card(art["render_top"],   "3D render (top)",  "Top view"))
           if art["render_bottom"]: pcb_cards.append(card(art["render_bottom"],"3D render (bottom)","Bottom view"))
-          if art["step"]:          pcb_cards.append(card(art["step"],         "STEP model",       "Mechanical CAD"))
+          if art["step_zip"]:      pcb_cards.append(card(art["step_zip"],     "STEP model (ZIP)", "Mechanical CAD — download"))
           if art["gerbers_zip"]:   pcb_cards.append(card(art["gerbers_zip"],  "Gerbers (ZIP)",    "Download all manufacturing files"))
           if art["drc_html"]:      pcb_cards.append(card(art["drc_html"],     "DRC report",       "Design rule check"))
 
