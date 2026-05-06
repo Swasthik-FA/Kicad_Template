@@ -172,11 +172,16 @@ jobs:
         continue-on-error: true
         env:
           PROJECT: ${{ env.KICAD_PROJECT }}
+          REPO: ${{ github.repository }}
         run: |
           python3 - <<'PY'
           import json, os, pathlib, re, html
           out = pathlib.Path("output")
           project = os.environ.get("PROJECT", "")
+          repo = os.environ.get("REPO", "")
+          owner, repo_name = (repo.split("/", 1) + [""])[:2] if repo else ("", "")
+          pages_origin = f"https://{owner.lower()}.github.io/{repo_name}" if owner and repo_name else ""
+          viewer_url = f"{pages_origin}/3d-viewer.html" if pages_origin else "3d-viewer.html"
 
           def first(glob):
               hits = sorted(out.glob(glob))
@@ -218,7 +223,7 @@ jobs:
           if art["ibom"]:          sch_cards.append(card(art["ibom"],         "Interactive BOM",  "Browseable BOM viewer"))
 
           pcb_cards = []
-          if art["glb"]:           pcb_cards.append(card("3d-viewer.html",    "Open Interactive 3D Viewer","Rotate, zoom, pan the live PCB"))
+          if art["glb"]:           pcb_cards.append(card(viewer_url,          "Open Interactive 3D Viewer","Rotate, zoom, pan the live PCB"))
           if art["render_iso"]:    pcb_cards.append(card(art["render_iso"],   "3D render (iso)",  "Angled isometric view"))
           if art["render_top"]:    pcb_cards.append(card(art["render_top"],   "3D render (top)",  "Top view"))
           if art["render_bottom"]: pcb_cards.append(card(art["render_bottom"],"3D render (bottom)","Bottom view"))
