@@ -18,7 +18,7 @@
 
 | Parameter | Value |
 | --- | --- |
-| Dimensions | 106.58 x 54.37 mm |
+| Dimensions | 125.74 x 53.08 mm |
 <!--/PCB_BLOCK-->
 
 ***
