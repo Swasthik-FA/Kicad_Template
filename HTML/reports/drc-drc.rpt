@@ -1,5 +1,5 @@
 ** Drc report for Nano-Board-rev-2.kicad_pcb **
-** Created on 2026-05-06T06:18:03+0000 **
+** Created on 2026-05-06T06:21:59+0000 **
 
 ** Found 60 DRC violations **
 [lib_footprint_mismatch]: Footprint 'PinHeader_2x05_P2.54mm_Vertical_SMD' does not match copy in library 'Connector_PinHeader_2.54mm'.
