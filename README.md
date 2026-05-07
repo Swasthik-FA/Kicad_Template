@@ -1,24 +1,4 @@
 <!--PCB_BLOCK-->
-<table align="center">
-  <tr>
-    <td align="center">
-      <img alt="Front" src="HTML/3d/Nano-Board-rev-2-3d-top.png" width="380">
-      <br><sub><b>Front</b></sub>
-    </td>
-    <td align="center">
-      <img alt="Back" src="HTML/3d/Nano-Board-rev-2-3d-bottom.png" width="380">
-      <br><sub><b>Back</b></sub>
-    </td>
-  </tr>
-</table>
-
-***
-
-## SPECIFICATIONS
-
-| Parameter | Value |
-| --- | --- |
-| Dimensions | 125.74 x 53.08 mm |
 <!--/PCB_BLOCK-->
 
 ***
