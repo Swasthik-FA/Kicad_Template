@@ -30,11 +30,11 @@
     ├─ HTML               # Generated reports / Pages site (CI output)
     ├─ config             # KiBot YAML configs and report templates
     │  ├─ kibot           # Orchestrator + per-output YAMLs
-    │  └─ web             # Themed CSS and 3D viewer template
+    │  └─ web             # Themed CSS for generated HTML
     ├─ docs               # Project images and documentation assets
     ├─ hardware           # KiCad project (source of truth)
     ├─ manufacturing      # Auto-generated fabrication artifacts
-    └─ scripts            # Helper scripts (rename project, GLB export)
+    └─ scripts            # Helper scripts (rename project)
 
 <p align="center" width="100%">
   <img alt="Logo" width="33%" src="docs/Kicad_Template.png">
