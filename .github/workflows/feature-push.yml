@@ -3,14 +3,15 @@
 # ----------------------------------------------------------------------------
 # Trigger:  any push to `main` that touches the design or pipeline.
 # Purpose:  regenerate the full output set (ERC/DRC reports, schematic
-#           PDF, 3D PNGs, iBOM, gerbers, drills, navigate page,
-#           themed HTML) and commit the refreshed HTML/ tree back as a
-#           `[skip ci]` commit. Never fails the workflow on ERC/DRC
-#           severity — informational only for solo work on main.
+#           PDF, 3D PNGs + GLB, iBOM, gerbers, drills, navigate page,
+#           themed HTML, Three.js 3D viewer page) and commit the
+#           refreshed HTML/ tree back as a `[skip ci]` commit. Never
+#           fails the workflow on ERC/DRC severity — informational only
+#           for solo work on main.
 # Outputs:
 #   - HTML/                   committed back into the repo (Pages source)
 #   - error-report.html       inside HTML/
-#   - schematic PDF, 4 × 3D PNG renders, interactive HTML BOM
+#   - schematic PDF, 4 × 3D PNG renders, GLB, interactive HTML BOM
 # ============================================================================
 name: Build artifacts on main
 
@@ -103,6 +104,45 @@ jobs:
             schematic_only
 
       # ----------------------------------------------------------------------
+      # GLB export for the Three.js 3D viewer (config/web/3d-viewer.html).
+      # Wraps `kicad-cli pcb export glb`. Output lands at output/3d/<project>.glb;
+      # mirrored into HTML/3d/ by the publish step below.
+      # ----------------------------------------------------------------------
+      - name: Convert PCB to GLB
+        if: steps.detect.outputs.has_pcb == 'true'
+        continue-on-error: true
+        run: |
+          set +e
+          mkdir -p output/3d
+          python3 scripts/convert_to_glb.py \
+            --pcb "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb" \
+            --output "output/3d/${KICAD_PROJECT}.glb" || true
+          ls -la output/3d/ || true
+
+      # ----------------------------------------------------------------------
+      # Compress with gltf-transform (Meshopt + webp textures). Typical
+      # reduction 70-85%. Falls back to the original GLB on any failure.
+      # The viewer's GLTFLoader is wired with MeshoptDecoder so it decodes
+      # the compressed file natively.
+      # ----------------------------------------------------------------------
+      - name: Compress GLB (gltf-transform)
+        if: steps.detect.outputs.has_pcb == 'true'
+        continue-on-error: true
+        run: |
+          set -e
+          GLB="output/3d/${KICAD_PROJECT}.glb"
+          [ -f "$GLB" ] || { echo "no GLB to compress"; exit 0; }
+          ORIG=$(stat -c%s "$GLB")
+          npx --yes @gltf-transform/cli@4 optimize "$GLB" "$GLB.opt" \
+            --compress meshopt \
+            --texture-compress webp \
+            --texture-size 1024 \
+            --simplify false || { echo "compression failed; keeping original"; exit 0; }
+          NEW=$(stat -c%s "$GLB.opt")
+          mv "$GLB.opt" "$GLB"
+          echo "GLB compressed: ${ORIG} -> ${NEW} bytes ($(( 100 - NEW * 100 / ORIG ))% smaller)"
+
+      # ----------------------------------------------------------------------
       # Count violations — purely informational. Drives a friendly summary,
       # NOT a merge gate. The job never exits non-zero based on this.
       # ----------------------------------------------------------------------
@@ -187,6 +227,10 @@ jobs:
           out = pathlib.Path("output")
           project = os.environ.get("PROJECT", "")
           repo = os.environ.get("REPO", "")
+          owner, repo_name = (repo.split("/", 1) + [""])[:2] if repo else ("", "")
+          pages_origin = f"https://{owner.lower()}.github.io/{repo_name}" if owner and repo_name else ""
+          viewer_url = f"{pages_origin}/3d-viewer.html" if pages_origin else "3d-viewer.html"
+
           def first(glob):
               hits = sorted(out.glob(glob))
               return hits[0].relative_to(out).as_posix() if hits else None
@@ -206,6 +250,7 @@ jobs:
               "render_iso":     first("3d/*3d-angled*.png"),
               "step":           first("3d/*.step"),
               "step_zip":       None,
+              "glb":            first("3d/*.glb"),
               "gerbers_zip":    None,
               "navigate":       first(f"HTML/{project}-navigate.html") or first("HTML/*-navigate.html"),
           }
@@ -233,7 +278,7 @@ jobs:
           (out / "artifacts.json").write_text(json.dumps(art, indent=2), encoding="utf-8")
 
           has_sch = any(art[k] for k in ("schematic_pdf","bom_csv","ibom","erc_html"))
-          has_pcb = any(art[k] for k in ("render_top","render_bottom","render_iso","step","gerbers_zip","drc_html"))
+          has_pcb = any(art[k] for k in ("render_top","render_bottom","render_iso","step","glb","gerbers_zip","drc_html"))
 
           # ----- build dynamic index.html ---------------------------------------
           def card(href, title, sub):
@@ -249,6 +294,7 @@ jobs:
           if art["ibom"]:          sch_cards.append(card(art["ibom"],         "Interactive BOM",  "Browseable BOM viewer"))
 
           pcb_cards = []
+          if art["glb"]:           pcb_cards.append(card(viewer_url,          "Open Interactive 3D Viewer","Rotate, zoom, pan the live PCB"))
           if art["render_iso"]:    pcb_cards.append(card(art["render_iso"],   "3D render (iso)",  "Angled isometric view"))
           if art["render_top"]:    pcb_cards.append(card(art["render_top"],   "3D render (top)",  "Top view"))
           if art["render_bottom"]: pcb_cards.append(card(art["render_bottom"],"3D render (bottom)","Bottom view"))
@@ -373,6 +419,25 @@ jobs:
               if new != s:
                   nav.write_text(new, encoding="utf-8")
                   print(f"stripped rpt/json tiles from {nav}")
+          PY
+
+          # Render the Three.js 3D viewer template -> output/3d-viewer.html.
+          # The page lives at HTML root; the GLB is at HTML/3d/<project>.glb,
+          # so the relative URL is "3d/<project>.glb".
+          python3 - <<'PY' || true
+          import os, pathlib, html
+          project = os.environ.get("KICAD_PROJECT", "")
+          tpl = pathlib.Path("config/web/3d-viewer.html")
+          glb = pathlib.Path(f"output/3d/{project}.glb")
+          if tpl.exists() and glb.exists():
+              t = tpl.read_text(encoding="utf-8")
+              t = (t.replace("{{TITLE}}",   html.escape(project))
+                    .replace("{{GLB_URL}}", f"3d/{project}.glb"))
+              outp = pathlib.Path("output/3d-viewer.html")
+              outp.write_text(t, encoding="utf-8")
+              print(f"wrote {outp}")
+          else:
+              print(f"skip viewer render (tpl exists={tpl.exists()}, glb exists={glb.exists()})")
           PY
 
           # Replace the auto-generated .step tile in the navigate_3d page
