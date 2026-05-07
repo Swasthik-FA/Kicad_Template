@@ -2,8 +2,7 @@
 # Deploy HTML/ to GitHub Pages
 # ----------------------------------------------------------------------------
 # Publishes the contents of HTML/ as the static site. Pages serves HTML/
-# as the site root, so HTML/HTML/<x>.html lives at /HTML/<x>.html and
-# HTML/3d-viewer.html lives at /3d-viewer.html.
+# as the site root, so HTML/HTML/<x>.html lives at /HTML/<x>.html.
 #
 # REQUIRED one-time setup (manual, by the repo owner):
 #   Settings -> Pages -> Build and deployment -> Source: "GitHub Actions"
