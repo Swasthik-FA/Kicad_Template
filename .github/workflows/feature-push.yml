@@ -120,12 +120,15 @@ jobs:
           ls -la output/3d/ || true
 
       # ----------------------------------------------------------------------
-      # Compress with gltf-transform (Meshopt + webp textures). Typical
-      # reduction 70-85%. Falls back to the original GLB on any failure.
-      # The viewer's GLTFLoader is wired with MeshoptDecoder so it decodes
-      # the compressed file natively.
+      # Compress with gltf-transform. We deliberately AVOID the `optimize`
+      # preset: it runs `join`, `palette`, `flatten`, and `weld` which merge
+      # meshes that share (or appear to share) materials. KiCad's GLB exports
+      # the soldermask, copper, silkscreen, FR4 body and components as
+      # separate meshes with PBR materials -- joining/paletting them collapses
+      # the board into a flat single-material blob. Run only the lossless,
+      # non-merging passes plus meshopt + webp.
       # ----------------------------------------------------------------------
-      - name: Compress GLB (gltf-transform)
+      - name: Compress GLB (gltf-transform, layer-preserving)
         if: steps.detect.outputs.has_pcb == 'true'
         continue-on-error: true
         run: |
@@ -133,13 +136,19 @@ jobs:
           GLB="output/3d/${KICAD_PROJECT}.glb"
           [ -f "$GLB" ] || { echo "no GLB to compress"; exit 0; }
           ORIG=$(stat -c%s "$GLB")
-          npx --yes @gltf-transform/cli@4 optimize "$GLB" "$GLB.opt" \
-            --compress meshopt \
-            --texture-compress webp \
-            --texture-size 1024 \
-            --simplify false || { echo "compression failed; keeping original"; exit 0; }
-          NEW=$(stat -c%s "$GLB.opt")
-          mv "$GLB.opt" "$GLB"
+          TMP="$GLB.tmp.glb"
+          cp "$GLB" "$TMP"
+          run_gt () {
+            npx --yes @gltf-transform/cli@4 "$@" "$TMP" "$TMP.out" && mv "$TMP.out" "$TMP"
+          }
+          # Order matters: dedup/prune first, then meshopt, then texture compress.
+          run_gt dedup    || { echo "dedup failed; keeping original"; exit 0; }
+          run_gt prune    || { echo "prune failed; keeping previous"; }
+          run_gt meshopt  || { echo "meshopt failed; keeping previous"; }
+          run_gt webp --slots "baseColorTexture,metallicRoughnessTexture,emissiveTexture" \
+                      || { echo "webp failed; keeping previous"; }
+          mv "$TMP" "$GLB"
+          NEW=$(stat -c%s "$GLB")
           echo "GLB compressed: ${ORIG} -> ${NEW} bytes ($(( 100 - NEW * 100 / ORIG ))% smaller)"
 
       # ----------------------------------------------------------------------
