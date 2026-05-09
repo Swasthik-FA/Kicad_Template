@@ -155,14 +155,6 @@ import { RoomEnvironment }   from 'three/addons/environments/RoomEnvironment.js'
 
 const GLB_URL = "3d/Nano-Board-rev-2.glb";
 
-// --- Debug switches (toggle in URL: ?debug=1, ?normals=1, ?wire=1, ?scale=0.01) ---
-const Q = new URLSearchParams(location.search);
-const DEBUG    = Q.get('debug')   !== null;
-const NORMALS  = Q.get('normals') !== null;   // force MeshNormalMaterial
-const WIRE     = Q.get('wire')    !== null;   // wireframe overlay
-const SCALE    = Q.get('scale') ? parseFloat(Q.get('scale')) : null;
-console.log('[viewer] flags', { DEBUG, NORMALS, WIRE, SCALE, GLB_URL });
-
 // --- Renderer / scene ---------------------------------------------------------
 const stage = document.getElementById('stage');
 const renderer = new THREE.WebGLRenderer({
@@ -199,7 +191,7 @@ function applyBackground() {
 applyBackground();
 
 // --- Camera + controls --------------------------------------------------------
-const camera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.01, 100000);
+const camera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.1, 5000);
 camera.position.set(0, 180, 260);
 
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -213,10 +205,6 @@ controls.maxDistance = 1200;
 controls.target.set(0, 0, 0);
 
 // --- Lighting -----------------------------------------------------------------
-// Debug-friendly: HemisphereLight guarantees something is lit even if PBR
-// materials end up black. Intensities slightly cranked to surface issues.
-const hemi = new THREE.HemisphereLight(0xffffff, 0x223344, 0.9);
-scene.add(hemi);
 const ambient = new THREE.AmbientLight(0xffffff, 0.45);
 scene.add(ambient);
 
@@ -271,121 +259,42 @@ const loadTimeout = setTimeout(() => {
   }
 }, 8000);
 
-console.log('[viewer] load start:', GLB_URL);
 loader.load(
   GLB_URL,
   (gltf) => {
     clearTimeout(loadTimeout);
     pcbModel = gltf.scene;
-    console.log('[viewer] load success. gltf =', gltf);
 
-    // ---- GLB introspection -------------------------------------------------
-    let meshCount = 0, matCount = 0, triCount = 0;
-    const matSet = new Set();
-    const nodeNames = [], meshNames = [], matNames = [];
     pcbModel.traverse(obj => {
-      if (obj.name) nodeNames.push(`${obj.type}:${obj.name}`);
       if (obj.isMesh) {
-        meshCount++;
-        meshNames.push(obj.name || '(unnamed mesh)');
-        const g = obj.geometry;
-        if (g && g.index) triCount += g.index.count / 3;
-        else if (g && g.attributes.position) triCount += g.attributes.position.count / 3;
-        const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
-        for (const m of mats) {
-          if (m && !matSet.has(m.uuid)) {
-            matSet.add(m.uuid);
-            matCount++;
-            matNames.push(`${m.type}:${m.name || '(unnamed)'}`);
-          }
-        }
-      }
-    });
-    console.log(`[viewer] meshes=${meshCount} materials=${matCount} tris=${Math.round(triCount)}`);
-    console.log('[viewer] node names:', nodeNames);
-    console.log('[viewer] mesh names:', meshNames);
-    console.log('[viewer] material names:', matNames);
-
-    // ---- Pre-add bounding box (in source units) ---------------------------
-    const rawBox = new THREE.Box3().setFromObject(pcbModel);
-    const rawSize = rawBox.getSize(new THREE.Vector3());
-    const rawCenter = rawBox.getCenter(new THREE.Vector3());
-    console.log('[viewer] raw bbox min=', rawBox.min, 'max=', rawBox.max);
-    console.log('[viewer] raw size=', rawSize, 'center=', rawCenter);
-
-    // ---- Optional scale override (?scale=0.01 etc.) -----------------------
-    if (SCALE && Number.isFinite(SCALE)) {
-      pcbModel.scale.setScalar(SCALE);
-      console.log('[viewer] applied scale override:', SCALE);
-    }
-
-    // ---- Material overrides for debugging ---------------------------------
-    pcbModel.traverse(obj => {
-      if (!obj.isMesh) return;
-      obj.castShadow = true;
-      obj.receiveShadow = true;
-      if (NORMALS) {
-        obj.material = new THREE.MeshNormalMaterial({ side: THREE.DoubleSide });
-      } else if (obj.material) {
-        // KiCad's GLB uses physically-based materials; just bump shading quality.
-        const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
-        for (const m of mats) {
-          if ('envMapIntensity' in m) m.envMapIntensity = 1.0;
-          if (WIRE) m.wireframe = true;
-          // Belt-and-braces: if a mesh somehow has no faces shown, double-side it.
-          m.side = THREE.DoubleSide;
-          m.needsUpdate = true;
+        obj.castShadow = true;
+        obj.receiveShadow = true;
+        if (obj.material) {
+          // KiCad's GLB uses physically-based materials; just bump shading quality.
+          if ('envMapIntensity' in obj.material) obj.material.envMapIntensity = 1.0;
+          obj.material.needsUpdate = true;
         }
       }
     });
 
     scene.add(pcbModel);
 
-    // ---- Final bounding box (after add + scale) ---------------------------
+    // Frame the model.
     pcbBox.setFromObject(pcbModel);
     pcbBox.getCenter(pcbCenter);
     pcbBox.getSize(pcbSize);
-    console.log('[viewer] final size=', pcbSize, 'center=', pcbCenter);
-
-    // Sanity check: empty / NaN bbox means nothing renderable was added.
-    if (!isFinite(pcbSize.x) || pcbSize.length() === 0) {
-      console.error('[viewer] bounding box is empty/NaN — nothing visible to render.');
-    }
 
     // Center the model at origin so rotations behave intuitively.
     pcbModel.position.sub(pcbCenter);
     pcbBox.setFromObject(pcbModel);
     pcbBox.getCenter(pcbCenter);
 
-    // ---- Auto-fit camera to model size ------------------------------------
-    // Recompute clipping planes from model scale to avoid frustum culling.
-    const maxDim = Math.max(pcbSize.x, pcbSize.y, pcbSize.z) || 1;
-    camera.near = Math.max(0.001, maxDim / 10000);
-    camera.far  = Math.max(1000,  maxDim * 100);
-    camera.updateProjectionMatrix();
-    controls.minDistance = maxDim * 0.05;
-    controls.maxDistance = maxDim * 50;
-
     // Position ground just under the board.
-    ground.position.y = pcbBox.min.y - Math.max(maxDim * 0.01, 0.5);
-
-    // ---- Debug helpers ----------------------------------------------------
-    if (DEBUG) {
-      const axes = new THREE.AxesHelper(maxDim * 0.6);
-      scene.add(axes);
-      const grid = new THREE.GridHelper(maxDim * 4, 20, 0x888888, 0x333333);
-      grid.position.y = pcbBox.min.y;
-      scene.add(grid);
-      const boxHelper = new THREE.Box3Helper(pcbBox.clone(), 0xff00ff);
-      scene.add(boxHelper);
-      console.log('[viewer] debug helpers added (axes/grid/box)');
-    }
+    ground.position.y = pcbBox.min.y - Math.max(2, pcbSize.y * 0.05);
 
     frameView('iso');
     defaultCam.pos.copy(camera.position);
     defaultCam.target.copy(controls.target);
-    console.log('[viewer] camera pos=', camera.position, 'target=', controls.target,
-                'near=', camera.near, 'far=', camera.far);
 
     requestAnimationFrame(() => {
       loaderEl.classList.add('hidden');
@@ -396,17 +305,15 @@ loader.load(
     if (xhr.lengthComputable) {
       const pct = (xhr.loaded / xhr.total) * 100;
       loaderBar.style.width = pct.toFixed(1) + '%';
-      console.log(`[viewer] progress ${pct.toFixed(1)}% (${xhr.loaded}/${xhr.total})`);
     } else if (xhr.loaded) {
       // Server didn't send Content-Length — show indeterminate-ish progress.
       const fakePct = Math.min(95, (xhr.loaded / (1024 * 1024)) * 8);
       loaderBar.style.width = fakePct.toFixed(1) + '%';
-      console.log(`[viewer] progress (no total) loaded=${xhr.loaded}`);
     }
   },
   (err) => {
     clearTimeout(loadTimeout);
-    console.error('[viewer] load error:', err);
+    console.error(err);
     loaderEl.classList.add('hidden');
     errorEl.classList.add('show');
     if (location.protocol === 'file:') {
