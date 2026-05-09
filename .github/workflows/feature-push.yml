@@ -145,8 +145,6 @@ jobs:
           run_gt dedup    || { echo "dedup failed; keeping original"; exit 0; }
           run_gt prune    || { echo "prune failed; keeping previous"; }
           run_gt meshopt  || { echo "meshopt failed; keeping previous"; }
-          run_gt webp --slots "baseColorTexture,metallicRoughnessTexture,emissiveTexture" \
-                      || { echo "webp failed; keeping previous"; }
           mv "$TMP" "$GLB"
           NEW=$(stat -c%s "$GLB")
           echo "GLB compressed: ${ORIG} -> ${NEW} bytes ($(( 100 - NEW * 100 / ORIG ))% smaller)"
