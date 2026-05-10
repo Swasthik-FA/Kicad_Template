@@ -8,7 +8,7 @@ A KiCad PCB project (`hardware/Nano-Board-rev-2.kicad_*`) wrapped in a KiBot-dri
 
 The KiCad project is the source of truth. Everything under `HTML/`, `manufacturing/`, and report files is *generated* by CI and committed back via `[skip ci]` auto-commits. Do not hand-edit those.
 
-## CI pipeline (5 stages)
+## CI pipeline (5 stages + Pages deploy)
 
 The workflows in `.github/workflows/` form a graduated pipeline keyed off branch and event:
 
@@ -19,6 +19,7 @@ The workflows in `.github/workflows/` form a graduated pipeline keyed off branch
 | 3 | `pr-to-qa.yml` | PR → `qa` | Same gate; on pass, builds full manufacturing artifact (`qa-package-<PR#>`). |
 | 4 | `pr-to-main.yml` | PR → `main` | Same gate; produces `release-candidate-<PR#>`. |
 | 5 | `release.yml` | push of tag `v*` | Builds full package, zips, creates GitHub Release. |
+| — | `pages.yml` | push to `main` touching `HTML/**` | Deploys `HTML/` to GitHub Pages. |
 
 Branch protection on `dev`/`qa`/`main` requires the gate job's name as a status check (`ERC + DRC gate`, `QA build`, `Release-candidate build`).
 
@@ -48,6 +49,12 @@ Preflights (`kibot_pre_erc_report.yaml`, `kibot_pre_drc_report.yaml`) run before
 
 The `feature-push.yml` publish step also strips `.rpt`/`.json` `output-box` tiles from the auto-generated `*-navigate_reports.html` (so the navigate page only links to the HTML pages, with download buttons embedded in the per-kind HTML).
 
+## 3D viewer + Pages site layout
+
+`HTML/3d-viewer.html` is a Three.js viewer sourced from `config/web/3d-viewer.html`. `scripts/convert_to_glb.py` runs in CI to compress the KiBot STEP export into GLB while preserving PCB layer materials (see commit `0e5c730`; do not skip the material-preservation step or the board renders untextured).
+
+`pages.yml` serves `HTML/` as the site root — so `HTML/HTML/<x>.html` lives at `/HTML/<x>.html` and `HTML/3d-viewer.html` at `/3d-viewer.html`. One-time setup: Settings → Pages → Source = "GitHub Actions".
+
 ## Common commands
 
 ```bash
@@ -76,18 +83,12 @@ The `kicad_auto:ki9` Docker image (`ghcr.io/inti-cmnb/kicad_auto:ki9`) is the re
 
 ## Template usage
 
-This repo is a reusable starting point. Spinning up a new project is a
-two-step flow:
+This repo is a reusable starting point. Spinning up a new project is a two-step flow:
 
 1. Create a new repo from this template (or clone + reset history).
 2. Run `python scripts/rename_project.py <new-name>`.
 
-The rename script edits the `KICAD_PROJECT` env in every workflow, the
-KiBot navigate title in `kibot_main.yaml`, README/CLAUDE/TEMPLATE
-references, and renames every `hardware/<old>*` file (kicad_pro,
-kicad_pcb, kicad_sch, backups, 3D models, gerbers, production zip)
-to match. See `TEMPLATE.md` for the full setup checklist (branch
-protection, Pages, KiCad version pinning).
+The rename script edits the `KICAD_PROJECT` env in every workflow, the KiBot navigate title in `kibot_main.yaml`, README/CLAUDE/TEMPLATE references, and renames every `hardware/<old>*` file (kicad_pro, kicad_pcb, kicad_sch, backups, 3D models, gerbers, production zip) to match. See `TEMPLATE.md` for the full setup checklist (branch protection, Pages, KiCad version pinning).
 
 ## Branch / commit / PR conventions
 
