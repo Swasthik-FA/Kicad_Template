@@ -66,26 +66,50 @@ jobs:
         run: mkdir -p output/reports
 
       # ----------------------------------------------------------------------
-      # ERC + DRC + lightweight visual outputs via KiBot's `visual` group.
-      # The preflights run as part of the group and honor the project's
-      # rule_severities (from .kicad_pro) exactly like the KiCad GUI;
-      # `kicad-cli` would NOT apply those overrides and silently misses
-      # errors that the GUI would flag (e.g. hole_clearance promoted to
-      # error). Preflight outputs land as erc-erc.{html,rpt,json} and
-      # drc-drc.{html,rpt,json}. dont_stop=true on the DRC preflight keeps
-      # KiBot going past violations; the gate below counts JSON entries
-      # with severity=error.
+      # Phase 1 auto-detect: schematic-only repos skip DRC. The PCB file's
+      # presence drives whether we pass -b and whether we --skip-pre drc.
+      # ----------------------------------------------------------------------
+      - name: Detect PCB presence
+        id: detect
+        run: |
+          if [[ -f "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb" ]]; then
+            echo "has_pcb=true" >> "$GITHUB_OUTPUT"
+            echo "PCB found — running ERC + DRC."
+          else
+            echo "has_pcb=false" >> "$GITHUB_OUTPUT"
+            echo "No PCB file — running ERC only, DRC will be skipped."
+          fi
+
+      # ----------------------------------------------------------------------
+      # ERC (+ DRC if PCB exists) via KiBot's `gate_only` group.
+      # The preflights honor the project's rule_severities (from .kicad_pro)
+      # exactly like the KiCad GUI; `kicad-cli` would NOT apply those
+      # overrides and silently misses errors the GUI would flag (e.g.
+      # hole_clearance promoted to error). Preflight outputs land as
+      # erc-erc.{html,rpt,json} and drc-drc.{html,rpt,json}. dont_stop=true
+      # on the DRC preflight keeps KiBot going past violations; the gate
+      # below counts JSON entries with severity=error.
       # ----------------------------------------------------------------------
       - name: ERC + DRC via KiBot (gate_only group)
         run: |
           set +e
-          kibot \
-            -c "${KIBOT_CONFIG}" \
-            -d output \
-            -e "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_sch" \
-            -b "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb" \
-            --log "${KIBOT_LOG}" \
-            gate_only || true
+          if [[ "${{ steps.detect.outputs.has_pcb }}" == "true" ]]; then
+            kibot \
+              -c "${KIBOT_CONFIG}" \
+              -d output \
+              -e "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_sch" \
+              -b "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_pcb" \
+              --log "${KIBOT_LOG}" \
+              gate_only || true
+          else
+            kibot \
+              -c "${KIBOT_CONFIG}" \
+              -d output \
+              -e "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_sch" \
+              --log "${KIBOT_LOG}" \
+              --skip-pre drc \
+              gate_only || true
+          fi
 
       # ----------------------------------------------------------------------
       # Count error-severity violations from the JSON reports.
@@ -93,6 +117,8 @@ jobs:
       # ----------------------------------------------------------------------
       - name: Count violations
         id: count
+        env:
+          HAS_PCB: ${{ steps.detect.outputs.has_pcb }}
         run: |
           python3 - <<'PY' >> "$GITHUB_OUTPUT"
           import json, os
@@ -113,13 +139,83 @@ jobs:
                       if sev == 'error': e += 1
                       elif sev == 'warning': w += 1
               return e, w
+          has_pcb = os.environ.get('HAS_PCB') == 'true'
           ee, ew = tally('output/reports/erc-erc.json')
-          de, dw = tally('output/reports/drc-drc.json')
+          if has_pcb:
+              de, dw = tally('output/reports/drc-drc.json')
+              drc_e, drc_w = str(de), str(dw)
+              total = ee + de
+          else:
+              drc_e, drc_w = 'skipped', 'skipped'
+              total = ee
+          print(f"has_pcb={'true' if has_pcb else 'false'}")
           print(f"erc_errors={ee}")
           print(f"erc_warnings={ew}")
-          print(f"drc_errors={de}")
-          print(f"drc_warnings={dw}")
-          print(f"total_errors={ee + de}")
+          print(f"drc_errors={drc_e}")
+          print(f"drc_warnings={drc_w}")
+          print(f"total_errors={total}")
+          PY
+
+      # ======================================================================
+      # PHASE 2 — Generic schematic validator (power pins + decoupling caps)
+      # ----------------------------------------------------------------------
+      # Independent of Phase 1. Exports a KiCad XML netlist and runs a
+      # heuristic checker that classifies pins by name + electrical type and
+      # walks net membership. No per-project config — works on any KiCad
+      # project. Errors block the merge; warnings are advisory.
+      # ======================================================================
+      - name: Phase 2 — Export KiCad XML netlist
+        id: netlist
+        run: |
+          set +e
+          mkdir -p output/reports
+          kicad-cli sch export netlist \
+            --format kicadxml \
+            -o output/reports/netlist.xml \
+            "${KICAD_PROJECT_DIR}/${KICAD_PROJECT}.kicad_sch"
+          if [[ -s output/reports/netlist.xml ]]; then
+            echo "netlist_ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "netlist_ok=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Netlist export failed; Phase 2 will be skipped."
+          fi
+
+      - name: Phase 2 — Schematic validator (power + decoupling)
+        id: phase2_run
+        if: steps.netlist.outputs.netlist_ok == 'true'
+        run: |
+          python3 config/schematic_validator.py \
+            --netlist     output/reports/netlist.xml \
+            --report-html output/reports/schematic-validator.html \
+            --report-json output/reports/schematic-validator.json
+
+      - name: Phase 2 — Count violations
+        id: phase2
+        if: always()
+        env:
+          NETLIST_OK: ${{ steps.netlist.outputs.netlist_ok }}
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os
+          if os.environ.get('NETLIST_OK') != 'true':
+              print('phase2_status=skipped')
+              print('phase2_errors=skipped')
+              print('phase2_warnings=skipped')
+              print('phase2_error_count=0')
+              raise SystemExit(0)
+          try:
+              j = json.load(open('output/reports/schematic-validator.json'))
+              e, w = len(j.get('errors', [])), len(j.get('warnings', []))
+              print('phase2_status=ran')
+              print(f'phase2_errors={e}')
+              print(f'phase2_warnings={w}')
+              print(f'phase2_error_count={e}')
+          except Exception as exc:
+              print('phase2_status=failed')
+              print('phase2_errors=?')
+              print('phase2_warnings=?')
+              print('phase2_error_count=0')
+              print(f'::warning::Phase 2 result parse failed: {exc}', file=__import__("sys").stderr)
           PY
 
       # ----------------------------------------------------------------------
@@ -146,14 +242,24 @@ jobs:
           edit-mode: replace
           body: |
             <!-- erc-drc-gate -->
-            ### ${{ steps.count.outputs.total_errors == '0' && '✅ ERC / DRC passed — merge allowed' || '❌ ERC / DRC failed — merge blocked' }}
+            ### ${{ (steps.count.outputs.total_errors == '0' && steps.phase2.outputs.phase2_error_count == '0') && '✅ All gates passed — merge allowed' || '❌ Gate failed — merge blocked' }}
+
+            **Phase 1 — KiCad ERC / DRC**
+            ${{ steps.count.outputs.has_pcb == 'false' && '_No `.kicad_pcb` found — DRC skipped (schematic-only repo)._' || '' }}
 
             | Check | Errors | Warnings |
             |-------|-------:|---------:|
             | ERC   | ${{ steps.count.outputs.erc_errors }} | ${{ steps.count.outputs.erc_warnings }} |
             | DRC   | ${{ steps.count.outputs.drc_errors }} | ${{ steps.count.outputs.drc_warnings }} |
 
-            See the [workflow run ↗](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for the raw KiBot logs.${{ steps.count.outputs.total_errors != '0' && '
+            **Phase 2 — Schematic validator (power pins + decoupling)**
+            ${{ steps.phase2.outputs.phase2_status == 'skipped' && '_Netlist export failed — Phase 2 skipped._' || '' }}
+
+            | Check               | Errors | Warnings |
+            |---------------------|-------:|---------:|
+            | Schematic validator | ${{ steps.phase2.outputs.phase2_errors }} | ${{ steps.phase2.outputs.phase2_warnings }} |
+
+            See the [workflow run ↗](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for raw logs and the `schematic-validator.html` report.${{ (steps.count.outputs.total_errors != '0' || steps.phase2.outputs.phase2_error_count != '0') && '
 
             **Please fix the issues before merging.**' || '' }}
 
@@ -166,7 +272,7 @@ jobs:
       # If the gate fails below, this is harmless: auto-merge waits for green.
       # ----------------------------------------------------------------------
       - name: Enable auto-merge
-        if: steps.count.outputs.total_errors == '0'
+        if: steps.count.outputs.total_errors == '0' && steps.phase2.outputs.phase2_error_count == '0'
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -175,8 +281,8 @@ jobs:
             --repo "${GITHUB_REPOSITORY}" \
             --auto --squash || true
 
-      - name: Fail job if ERC/DRC errors
-        if: steps.count.outputs.total_errors != '0'
+      - name: Fail job if any gate has errors
+        if: steps.count.outputs.total_errors != '0' || steps.phase2.outputs.phase2_error_count != '0'
         run: |
-          echo "::error::ERC=${{ steps.count.outputs.erc_errors }} DRC=${{ steps.count.outputs.drc_errors }} errors. Merge blocked."
+          echo "::error::Phase 1: ERC=${{ steps.count.outputs.erc_errors }} DRC=${{ steps.count.outputs.drc_errors }} | Phase 2: schematic-validator errors=${{ steps.phase2.outputs.phase2_errors }}. Merge blocked."
           exit 1
