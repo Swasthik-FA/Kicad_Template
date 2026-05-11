@@ -22,7 +22,7 @@ on:
     types: [opened, synchronize, reopened]
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
 
 env:
@@ -219,6 +219,48 @@ jobs:
           PY
 
       # ----------------------------------------------------------------------
+      # Commit the schematic-validator.html report back to the PR's feature
+      # branch under reports/. This makes the report viewable in the repo
+      # without needing to download a workflow artifact. When the PR merges,
+      # the report naturally lands on `dev` along with the rest of the diff.
+      # Uses [skip ci] to avoid retriggering feature-push.yml.
+      # ----------------------------------------------------------------------
+      - name: Publish schematic-validator report to feature branch
+        if: always() && hashFiles('output/reports/schematic-validator.html') != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          GATE_STATUS: ${{ (steps.count.outputs.total_errors == '0' && steps.phase2.outputs.phase2_error_count == '0') && 'pass' || 'fail' }}
+        run: |
+          set -e
+          # Skip if PR is from a fork — no write access to the head repo.
+          if [[ "${HEAD_REPO}" != "${GITHUB_REPOSITORY}" ]]; then
+            echo "PR is from a fork (${HEAD_REPO}); skipping report commit."
+            exit 0
+          fi
+          WORK=$(mktemp -d)
+          git config --global --add safe.directory "${WORK}"
+          git clone --depth 1 --branch "${HEAD_REF}" \
+            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+            "${WORK}"
+          mkdir -p "${WORK}/reports"
+          cp output/reports/schematic-validator.html "${WORK}/reports/schematic-validator.html"
+          if [[ -f output/reports/schematic-validator.json ]]; then
+            cp output/reports/schematic-validator.json "${WORK}/reports/schematic-validator.json"
+          fi
+          cd "${WORK}"
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add reports/schematic-validator.html reports/schematic-validator.json 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No report changes to commit."
+            exit 0
+          fi
+          git commit -m "ci(pr-to-dev): publish schematic-validator report (${GATE_STATUS}) [skip ci]"
+          git push origin "${HEAD_REF}"
+
+      # ----------------------------------------------------------------------
       # Sticky PR summary: one comment per PR, updated each run. Marker
       # <!-- erc-drc-gate --> lets peter-evans/find-comment locate and
       # rewrite the same comment instead of stacking new ones. Posts on
@@ -259,7 +301,7 @@ jobs:
             |---------------------|-------:|---------:|
             | Schematic validator | ${{ steps.phase2.outputs.phase2_errors }} | ${{ steps.phase2.outputs.phase2_warnings }} |
 
-            See the [workflow run ↗](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for raw logs and the `schematic-validator.html` report.${{ (steps.count.outputs.total_errors != '0' || steps.phase2.outputs.phase2_error_count != '0') && '
+            Schematic validator report (committed to this branch): [`reports/schematic-validator.html`](${{ github.server_url }}/${{ github.repository }}/blob/${{ github.event.pull_request.head.ref }}/reports/schematic-validator.html) · [workflow run ↗](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})${{ (steps.count.outputs.total_errors != '0' || steps.phase2.outputs.phase2_error_count != '0') && '
 
             **Please fix the issues before merging.**' || '' }}
 
