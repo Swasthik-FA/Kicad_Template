@@ -50,15 +50,15 @@ jobs:
 
       # ----------------------------------------------------------------------
       # Enforce source-branch policy: PRs into `dev` must come from a
-      # `main/*` branch. Fails the job (and so blocks the merge) early
-      # if the head ref does not start with main/.
+      # `feature/*` branch. Fails the job (and so blocks the merge) early
+      # if the head ref does not start with feature/.
       # ----------------------------------------------------------------------
-      - name: Enforce main/* source branch
+      - name: Enforce feature/* source branch
         run: |
           HEAD_REF="${{ github.event.pull_request.head.ref }}"
           echo "PR head ref: $HEAD_REF"
-          if [[ "$HEAD_REF" != main/* ]]; then
-            echo "::error::PRs into 'dev' must come from a 'main/*' branch. Got: $HEAD_REF"
+          if [[ "$HEAD_REF" != feature/* ]]; then
+            echo "::error::PRs into 'dev' must come from a 'feature/*' branch. Got: $HEAD_REF"
             exit 1
           fi
 
